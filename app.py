@@ -326,7 +326,6 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto,
             item_depto = avances.get(f"depto_{r.name}", "LOGÍSTICA")
             item_cuat = avances.get(f"cuat_{r.name}", "1er Cuatrimestre")
             
-            # FILTRO DE PRIVACIDAD EN REPORTE PDF
             v_gen = avances.get(f"eq_gen_{r.name}", "SIN ASIGNAR").upper().strip()
             v_seg = avances.get(f"eq_seg_{r.name}", "SIN ASIGNAR").upper().strip()
             v_adm = avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR").upper().strip()
@@ -353,7 +352,6 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto,
         m_depto = avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
         m_cuat = avances.get(f"nuevo_cuat_{i}", np['cuatrimestre'])
         
-        # FILTRO DE PRIVACIDAD EN REPORTE PDF PARA NUEVOS PROCESOS
         v_gen = avances.get(f"nuevo_eq_gen_{i}", "SIN ASIGNAR").upper().strip()
         v_seg = avances.get(f"nuevo_eq_seg_{i}", "SIN ASIGNAR").upper().strip()
         v_adm = avances.get(f"nuevo_eq_adm_{i}", "SIN ASIGNAR").upper().strip()
@@ -402,14 +400,13 @@ for idx, row in df_visualizacion.iterrows():
     monto_p = float(st.session_state.avances.get(f"monto_{row.name}", float(row['COSTO TOTAL'])))
     avance_p = st.session_state.avances.get(f"s_{row.name}", "Pendiente")
     
-    # Comprobar asignación para la seguridad del cálculo financiero
     v_gen = st.session_state.avances.get(f"eq_gen_{row.name}", "SIN ASIGNAR").upper().strip()
     v_seg = st.session_state.avances.get(f"eq_seg_{row.name}", "SIN ASIGNAR").upper().strip()
     v_adm = st.session_state.avances.get(f"eq_adm_{row.name}", "SIN ASIGNAR").upper().strip()
     u_nom = st.session_state.user['nom'].upper().strip()
     
     if st.session_state.user['rol'] not in ['admin', 'supervisor'] and u_nom not in [v_gen, v_seg, v_adm]:
-        continue # Ocultar montos si no le pertenece
+        continue
         
     if depto_p == dep_sel and proceso_esta_activo(row.name, es_nuevo=False):
         v_t_a += monto_p
@@ -446,7 +443,7 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
                 v_e_c += monto_p
 
 # ==============================================================================
-# --- 6. PANEL CENTRAL GRÁFICO (DIFERENCIADO POR ROL) ---
+# --- 6. PANEL CENTRAL GRÁFICO ---
 # ==============================================================================
 st.markdown('<div class="main-title-gtae">🛫 Monitor Operativo de Control Presupuestario GTAE</div>', unsafe_allow_html=True)
 st.markdown(f"Módulo de gestión técnica — Departamento: **{dep_sel}**")
@@ -494,7 +491,7 @@ with tab_anual:
         else:
             st.info(f"No cuenta con fondos asignados bajo su responsabilidad para este año.")
 
-# Panel de Administración Integrado (Admin/Supervisor únicamente)
+# Panel de Administración Integrado
 if st.session_state.user['rol'] in ['admin', 'supervisor']:
     with st.expander("🛠️ Panel de Administración (Registrar Personal y Nuevos Procesos Extra-PAC)"):
         t_pers, t_proc = st.tabs(["👥 Gestión de Personal", "➕ Incluir Nuevo Proceso Manual"])
@@ -538,7 +535,7 @@ if st.session_state.user['rol'] in ['admin', 'supervisor']:
                         st.rerun()
 
 # ==============================================================================
-# --- 7. FILTRADO ESTRICTO DE VISUALIZACIÓN DE EXPANDERS POR OPERADOR ---
+# --- 7. DISPLAY DE FILTRADO Y EXPANDERS INTERACTIVOS CORREGIDOS ---
 # ==============================================================================
 st.markdown("---")
 st.markdown("### 🔍 Buscador de Procesos en Ejecución")
@@ -551,7 +548,7 @@ def sync_estado(k):
 opciones_personal = [admin.upper().strip() for admin in lista_admins_reales]
 if "SIN ASIGNAR" not in opciones_personal: opciones_personal.insert(0, "SIN ASIGNAR")
 
-# --- EXPANDERS: PROCESOS NUEVOS MANUALES ---
+# --- A. DESPLIEGUE DE PROCESOS NUEVOS MANUALES ---
 for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     depto_p = st.session_state.avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
     cuat_p = st.session_state.avances.get(f"nuevo_cuat_{i}", np['cuatrimestre'])
@@ -562,15 +559,13 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     else:
         if cuat_p != cuat_filtro_texto: continue
         
-    # Variables de Asignación Actuales
-    v_gen = st.session_state.avances.get(f"nuevo_eq_gen_{i}", "SIN ASIGNAR").upper().strip()
-    v_seg = st.session_state.avances.get(f"nuevo_eq_seg_{i}", "SIN ASIGNAR").upper().strip()
-    v_adm = st.session_state.avances.get(f"nuevo_eq_adm_{i}", "SIN ASIGNAR").upper().strip()
+    v_gen = st.session_state.avances.get(f'nuevo_eq_gen_{i}', "SIN ASIGNAR").upper().strip()
+    v_seg = st.session_state.avances.get(f'nuevo_eq_seg_{i}', "SIN ASIGNAR").upper().strip()
+    v_adm = st.session_state.avances.get(f'nuevo_eq_adm_{i}', "SIN ASIGNAR").upper().strip()
     u_nom = st.session_state.user['nom'].upper().strip()
     
-    # 🚨 FILTRO CRÍTICO DE SEGURIDAD POR OPERADOR
     if st.session_state.user['rol'] not in ['admin', 'supervisor'] and u_nom not in [v_gen, v_seg, v_adm]:
-        continue # Ocultar completamente al operador común si no está asignado
+        continue
         
     es_activo = st.session_state.avances.get(f"nuevo_estado_op_{i}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
     monto_t = float(st.session_state.avances.get(f"nuevo_monto_{i}", float(np['monto'])))
@@ -583,7 +578,6 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
         if es_activo:
             t1, t2, t3 = st.tabs(["📋 Detalles y Equipo", "📍 Avance", "📂 Expediente"])
             with t1:
-                # Los campos de edición se bloquean o se muestran según rol
                 if st.session_state.user['rol'] in ['admin', 'supervisor']:
                     st.text_input("Objeto:", value=st.session_state.avances.get(f"nuevo_name_{i}", np['objeto']), key=f"nuevo_name_{i}", on_change=sync_estado, args=(f"nuevo_name_{i}",))
                     cm, cp = st.columns(2)
@@ -595,8 +589,9 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
                     with c2: st.selectbox("Seguimiento FAE:", opciones_personal, index=opciones_personal.index(v_seg) if v_seg in opciones_personal else 0, key=f"nuevo_eq_seg_{i}", on_change=sync_estado, args=(f"nuevo_eq_seg_{i}",))
                     with c3: st.selectbox("Administrador:", opciones_personal, index=opciones_personal.index(v_adm) if v_adm in opciones_personal else 0, key=f"nuevo_eq_adm_{i}", on_change=sync_estado, args=(f"nuevo_eq_adm_{i}",))
                 else:
-                    st.markdown(f"**Objeto de Contratación:** {st.session_state.avances.get(f"nuevo_name_{i}", np['objeto'])}")
-                    st.markdown(f"💰 **Monto:** ${monto_t:,.2f} | 🗂️ **Partida:** {st.session_state.avances.get(f"nuevo_part_{i}", np['partida'])}")
+                    # CORREGIDO: comillas simples internas para resolver el SyntaxError
+                    st.markdown(f"**Objeto de Contratación:** {st.session_state.avances.get('nuevo_name_' + str(i), np['objeto'])}")
+                    st.markdown(f"💰 **Monto:** ${monto_t:,.2f} | 🗂️ **Partida:** {st.session_state.avances.get('nuevo_part_' + str(i), np['partida'])}")
                     st.markdown(f"👥 **Administrador Asignado:** {v_adm}")
             with t2:
                 st.select_slider("Fase actual:", options=puntos_fases, value=st.session_state.avances.get(f"nuevo_s_{i}", puntos_fases[0]), key=f"nuevo_s_{i}", on_change=sync_estado, args=(f"nuevo_s_{i}",))
@@ -611,7 +606,7 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
                     st.text_input("URL Carpeta Específica:", value=link_guardado, key=f"nuevo_lnk_nube_{i}", on_change=sync_estado, args=(f"nuevo_lnk_nube_{i}",))
                 st.link_button("📥 ABRIR EXPEDIENTE EN REPOSITORIO INSTITUCIONAL", url=link_guardado, use_container_width=True)
 
-# --- EXPANDERS: PROCESOS BASE DEL PAC ---
+# --- B. DESPLIEGUE DE PROCESOS DEL PAC EXCEL ---
 col_desc = next((c for c in df_visualizacion.columns if "DETALLE" in c.upper()), None)
 if col_desc:
     df_f = df_visualizacion.copy()
@@ -626,15 +621,13 @@ if col_desc:
         if not query.strip():
             if cuat_p != cuat_filtro_texto: continue
             
-        # Variables de Asignación Actuales
         v_gen = st.session_state.avances.get(f"eq_gen_{r.name}", "SIN ASIGNAR").upper().strip()
         v_seg = st.session_state.avances.get(f"eq_seg_{r.name}", "SIN ASIGNAR").upper().strip()
         v_adm = st.session_state.avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR").upper().strip()
         u_nom = st.session_state.user['nom'].upper().strip()
         
-        # 🚨 FILTRO CRÍTICO DE SEGURIDAD POR OPERADOR
         if st.session_state.user['rol'] not in ['admin', 'supervisor'] and u_nom not in [v_gen, v_seg, v_adm]:
-            continue # Ocultar completamente al operador común si no está asignado
+            continue
             
         proc_text = str(r.get('PROCEDIMIENTO SUGERIDO (SON LOS PROCEDIMIENTOS DE CONTRATACIÓN)', '')).upper()
         puntos = inf_s if "INFIMA" in proc_text else (ext_s if "EXTRANJERO" in proc_text or "PEX" in proc_text else px_s)
@@ -659,8 +652,9 @@ if col_desc:
                         with c2: st.selectbox("Seguimiento FAE:", opciones_personal, index=opciones_personal.index(v_seg) if v_seg in opciones_personal else 0, key=f"eq_seg_{r.name}", on_change=sync_estado, args=(f"eq_seg_{r.name}",))
                         with c3: st.selectbox("Administrador:", opciones_personal, index=opciones_personal.index(v_adm) if v_adm in opciones_personal else 0, key=f"eq_adm_{r.name}", on_change=sync_estado, args=(f"eq_adm_{r.name}",))
                     else:
-                        st.markdown(f"**Objeto de Contratación:** {st.session_state.avances.get(f"name_{r.name}", str(r.get(col_desc, 'S/N')))}")
-                        st.markdown(f"💰 **Monto Real:** ${monto_tarjeta:,.2f} | 🗂️ **Partida:** {st.session_state.avances.get(f"part_{r.name}", 'S/N')}")
+                        # CORREGIDO: comillas simples internas para resolver el SyntaxError
+                        st.markdown(f"**Objeto de Contratación:** {st.session_state.avances.get('name_' + str(r.name), str(r.get(col_desc, 'S/N')))}")
+                        st.markdown(f"💰 **Monto Real:** ${monto_tarjeta:,.2f} | 🗂️ **Partida:** {st.session_state.avances.get('part_' + str(r.name), 'S/N')}")
                         st.markdown(f"👥 **Administrador Asignado:** {v_adm}")
                 with t2:
                     st.select_slider("Fase:", options=puntos, value=st.session_state.avances.get(f"s_{r.name}", puntos[0]), key=f"s_{r.name}", on_change=sync_estado, args=(f"s_{r.name}",))
