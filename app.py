@@ -74,7 +74,7 @@ def guardar_base_datos(datos):
         json.dump(datos, f, ensure_ascii=False, indent=4)
     empujar_cambios_a_github()
 
-# --- SISTEMA DE OPERADORES Y CREDENCIALES ---
+# --- SISTEMA DE OPERADORES Y CREDENCIALES (CON CONTROL DE DUPLICADOS) ---
 USR = {
     "gconteron": {"nom": "Geovanny Conterón", "pin": "121026", "rol": "admin"},
     "encargado": {"nom": "ENCARGADO DE PROCESOS", "pin": "2026", "rol": "supervisor"}
@@ -99,30 +99,66 @@ else:
 
 lista_admins_reales = st.session_state.avances["lista_usuarios_gtae"]
 
+# Algoritmo de asignación inequívoca para apellidos duplicados
 for admin in lista_admins_reales:
     if admin != "SIN ASIGNAR":
-        username = admin.split()[0].replace(".", "").lower()
-        if username not in USR:
-            USR[username] = {"nom": admin, "pin": "2026", "rol": "user"}
+        partes = admin.split()
+        apellido_base = partes[0].replace(".", "").lower()
+        
+        # Si el apellido base no existe, se asigna directo
+        if apellido_base not in USR:
+            USR[apellido_base] = {"nom": admin, "pin": "2026", "rol": "user"}
+        else:
+            # Si el apellido ya existe y no es la misma persona, buscamos una variante única
+            if USR[apellido_base]["nom"] != admin:
+                if len(partes) > 1:
+                    inicial_nombre = partes[1].replace(".", "").lower()
+                    variante = f"{apellido_base}{inicial_nombre}"
+                else:
+                    variante = f"{apellido_base}2"
+                
+                # Bucle de seguridad por si hay más de dos duplicados
+                contador = 2
+                while variante in USR and USR[variante]["nom"] != admin:
+                    variante = f"{apellido_base}{contador}"
+                    contador += 1
+                    
+                USR[variante] = {"nom": admin, "pin": "2026", "rol": "user"}
 
 # ==============================================================================
-# --- 2. INYECCIÓN DE ESTILOS CSS INSTITUCIONALES ---
+# --- 2. INYECCIÓN DE ESTILOS CSS INSTITUCIONALES (REDISEÑO DE LOGIN COMPACTO) ---
 # ==============================================================================
 st.markdown("""
     <style>
     .stApp { background-color: #F8FAFC !important; }
     
+    /* Centrado absoluto y compactación de la pantalla de acceso de la captura image_ed82c4.jpg */
     .login-wrapper-gtae {
-        max-width: 440px;
-        margin: 100px auto !important;
-        background-color: #0B2545;
-        padding: 40px;
+        max-width: 380px !important;
+        margin: 70px auto !important;
+        background-color: #FFFFFF;
+        padding: 35px 40px 40px 40px;
         border-radius: 12px;
-        box-shadow: 0px 12px 30px rgba(0,0,0,0.3);
+        box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.08);
         text-align: center;
+        border: 1px solid #E2E8F0;
     }
-    .login-wrapper-gtae h2 { color: #FFFFFF !important; font-weight: 800; margin-bottom: 25px; font-size: 24px; }
     
+    .login-wrapper-gtae h2 { 
+        color: #0B2545 !important; 
+        font-weight: 800; 
+        margin-top: 15px !important;
+        margin-bottom: 25px !important; 
+        font-size: 24px; 
+    }
+    
+    .logo-centered-gtae {
+        display: block;
+        margin: 0 auto !important;
+        width: 140px !important;
+    }
+    
+    /* Panel lateral izquierdo del monitor operativo */
     [data-testid="stSidebar"] { background-color: #0B2545 !important; min-width: 320px !important; }
     [data-testid="stSidebar"] p, 
     [data-testid="stSidebar"] span, 
@@ -138,14 +174,14 @@ st.markdown("""
     [data-testid="stSidebar"] button, .login-wrapper-gtae button {
         background: #134074 !important;
         color: #FFFFFF !important; 
-        border: 1px solid #FFFFFF !important;
+        border: 1px solid #134074 !important;
         border-radius: 6px !important; 
         font-weight: bold !important;
         width: 100% !important; 
         height: 42px; 
         transition: all 0.3s ease;
     }
-    [data-testid="stSidebar"] button:hover, .login-wrapper-gtae button:hover { background: #1E40AF !important; box-shadow: 0px 4px 12px rgba(255,255,255,0.2); }
+    [data-testid="stSidebar"] button:hover, .login-wrapper-gtae button:hover { background: #1E40AF !important; border-color: #1E40AF !important; }
     
     div.metric-premium-card {
         background-color: #FFFFFF !important; 
@@ -179,7 +215,8 @@ if "user" not in st.session_state:
 
 if st.session_state.user is None:
     st.markdown('<div class="login-wrapper-gtae">', unsafe_allow_html=True)
-    if os.path.exists(LOGO): st.image(LOGO, width=110)
+    if os.path.exists(LOGO): 
+        st.image(LOGO, width=130)
     st.markdown("<h2>Acceso Sistema GTAE</h2>", unsafe_allow_html=True)
     
     u = st.text_input("Usuario Corporativo:", key="input_user_login").strip().lower()
@@ -218,6 +255,11 @@ px_s, inf_s, ext_s, df_pac = load_data()
 st.sidebar.image(LOGO if os.path.exists(LOGO) else None, width=100)
 st.sidebar.markdown(f"### 👤 **Usuario:** {st.session_state.user['nom']}")
 st.sidebar.markdown(f"### 🪖 **Rol:** {st.session_state.user['rol'].upper()}")
+
+if GITHUB_TOKEN and GITHUB_REPO:
+    st.sidebar.success("🔒 Almacenamiento Permanente Activado")
+else:
+    st.sidebar.warning("⚠️ Modo Local (Configura Secrets en Streamlit)")
 
 dep_sel = st.sidebar.selectbox("Visualizar Departamento:", ["LOGÍSTICA", "OPERACIONES", "OTRAS DEPENDENCIAS"], key="selector_dependencias_fijo_gtae")
 cuat_sel = st.sidebar.radio("Seleccione Cuatrimestre:", ["C1", "C2", "C3"])
@@ -320,12 +362,9 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
 # ==============================================================================
 df_visualizacion = df_pac.copy()
 
-# Variables para el Cuatrimestre específico
 v_t_c, v_e_c = 0.0, 0.0
-# Variables para el Consolidado Anual Global
 v_t_a, v_e_a = 0.0, 0.0
 
-# Procesar PAC Excel
 for idx, row in df_visualizacion.iterrows():
     depto_p = st.session_state.avances.get(f"depto_{row.name}", "LOGÍSTICA")
     cuat_p = st.session_state.avances.get(f"cuat_{row.name}", "1er Cuatrimestre")
@@ -333,18 +372,15 @@ for idx, row in df_visualizacion.iterrows():
     avance_p = st.session_state.avances.get(f"s_{row.name}", "Pendiente")
     
     if depto_p == dep_sel and proceso_esta_activo(row.name, es_nuevo=False):
-        # Sumas globales anuales
         v_t_a += monto_p
         if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
             v_e_a += monto_p
             
-        # Sumas específicas del cuatrimestre seleccionado
         if cuat_p == cuat_filtro_texto:
             v_t_c += monto_p
             if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
                 v_e_c += monto_p
 
-# Procesar Procesos Manuales
 for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     depto_p = st.session_state.avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
     cuat_p = st.session_state.avances.get(f"nuevo_cuat_{i}", np['cuatrimestre'])
@@ -352,25 +388,22 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     avance_p = st.session_state.avances.get(f"nuevo_s_{i}", "1. Certificación Pertenencia/Existencia")
     
     if depto_p == dep_sel and proceso_esta_activo(i, es_nuevo=True):
-        # Sumas globales anuales
         v_t_a += monto_p
         if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
             v_e_a += monto_p
             
-        # Sumas específicas del cuatrimestre seleccionado
         if cuat_p == cuat_filtro_texto:
             v_t_c += monto_p
             if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
                 v_e_c += monto_p
 
 # ==============================================================================
-# --- 6. PANEL CENTRAL GRÁFICO (REDISEÑO CON METRICAS ANUALES Y CUATRIMESTRALES) ---
+# --- 6. PANEL CENTRAL GRÁFICO ---
 # ==============================================================================
 st.markdown('<div class="main-title-gtae">🛫 Monitor Operativo de Control Presupuestario GTAE</div>', unsafe_allow_html=True)
 st.markdown(f"Módulo de gestión técnica — Departamento: **{dep_sel}**")
 st.markdown("---")
 
-# Estructuración de pestañas de visualización avanzada
 tab_cuat, tab_anual = st.tabs([f"📊 Métricas del Periodo ({cuat_filtro_texto})", "🌍 Consolidado General Anual 2026"])
 
 with tab_cuat:
@@ -470,7 +503,6 @@ def sync_estado(k):
 opciones_personal = [admin.upper().strip() for admin in lista_admins_reales]
 if "SIN ASIGNAR" not in opciones_personal: opciones_personal.insert(0, "SIN ASIGNAR")
 
-# --- A. DESPLIEGUE DE PROCESOS NUEVOS MANUALES ---
 for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     depto_p = st.session_state.avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
     cuat_p = st.session_state.avances.get(f"nuevo_cuat_{i}", np['cuatrimestre'])
@@ -513,7 +545,6 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
                 st.text_input("URL Carpeta Específica:", value=link_guardado, key=f"nuevo_lnk_nube_{i}", on_change=sync_estado, args=(f"nuevo_lnk_nube_{i}",))
                 st.link_button("📥 ABRIR EXPEDIENTE EN REPOSITORIO INSTITUCIONAL", url=link_guardado, use_container_width=True)
 
-# --- B. DESPLIEGUE DE PROCESOS DEL PAC EXCEL ---
 col_desc = next((c for c in df_visualizacion.columns if "DETALLE" in c.upper()), None)
 if col_desc:
     df_f = df_visualizacion.copy()
@@ -570,6 +601,5 @@ if st.sidebar.button("Cerrar Sesión Activa"):
     st.session_state.user = None
     st.rerun()
 
-# --- FIRMA DE AUTOR ---
 st.sidebar.markdown("---")
 st.sidebar.markdown("<div style='text-align: center; background-color: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px;'><p style='color: white; font-size: 11px; margin-bottom: 0;'>© 2026 Desarrollado por:</p><p style='color: #FFD700; font-size: 13px; font-weight: bold; margin-top: 5px;'>Econ. Geovanny Conterón</p><p style='color: #E3F2FD; font-size: 10px; font-style: italic;'>GTAE - FAE</p></div>", unsafe_allow_html=True)
