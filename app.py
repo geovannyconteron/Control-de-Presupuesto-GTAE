@@ -194,15 +194,15 @@ if st.session_state.user is None:
     if os.path.exists(LOGO): st.image(LOGO, width=110)
     st.markdown("<h2>Acceso Sistema GTAE</h2>", unsafe_allow_html=True)
     
-    u = st.text_input("Usuario Corporativo:", key="input_user_login").strip().lower()
-    p = st.text_input("PIN Militar de Seguridad:", type="password", key="input_pin_login").strip()
+    u = st.text_input("Usuario:", key="input_user_login").strip().lower()
+    p = st.text_input("Contraseña:", type="password", key="input_pin_login").strip()
     
     if st.button("Ingresar al Monitor Operativo", key="button_submit_login"):
         if u in USR and USR[u]["pin"] == p:
             st.session_state.user = USR[u]
             st.rerun()
         else:
-            st.error("Credenciales militares incorrectas.")
+            st.error("Credenciales incorrectas.")
             
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
