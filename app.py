@@ -65,7 +65,7 @@ else:
 if "procesos_nuevos" not in st.session_state.avances:
     st.session_state.avances["procesos_nuevos"] = []
 
-def process_esta_activo(idx, es_nuevo=False):
+def proceso_esta_activo(idx, es_nuevo=False):
     clave = f"nuevo_estado_op_{idx}" if es_nuevo else f"estado_op_{idx}"
     return st.session_state.avances.get(clave, "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
 
@@ -371,12 +371,15 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
     return pdf.output(dest='S').encode('latin1', errors='ignore')
 
 # ==============================================================================
-# --- 5. MOTOR MATEMÁTICO UNIVERSAL FAE ---
+# --- 5. MOTOR MATEMÁTICO UNIVERSAL FAE (DESGLOSE FINANCIERO ADAPTATIVO) ---
 # ==============================================================================
 df_visualizacion = df_pac.copy()
 
 v_t_c, v_e_c = 0.0, 0.0
 v_t_a, v_e_a = 0.0, 0.0
+
+u_nom_logueado = st.session_state.user['nom'].upper().strip()
+u_rol_logueado = st.session_state.user['rol'].lower().strip()
 
 for idx, row in df_visualizacion.iterrows():
     depto_p = st.session_state.avances.get(f"depto_{row.name}", "LOGÍSTICA")
@@ -384,6 +387,14 @@ for idx, row in df_visualizacion.iterrows():
     monto_p = float(st.session_state.avances.get(f"monto_{row.name}", float(row['COSTO TOTAL'])))
     avance_p = st.session_state.avances.get(f"s_{row.name}", "Pendiente")
     
+    v_gen = st.session_state.avances.get(f"eq_gen_{row.name}", "SIN ASIGNAR").upper().strip()
+    v_seg = st.session_state.avances.get(f"eq_seg_{row.name}", "SIN ASIGNAR").upper().strip()
+    v_adm = st.session_state.avances.get(f"eq_adm_{row.name}", "SIN ASIGNAR").upper().strip()
+    
+    if u_rol_logueado not in ['admin', 'supervisor']:
+        if u_nom_logueado not in [v_gen, v_seg, v_adm]:
+            continue
+            
     if depto_p == dep_sel and proceso_esta_activo(row.name, es_nuevo=False):
         v_t_a += monto_p
         if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
@@ -400,6 +411,14 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     monto_p = float(st.session_state.avances.get(f"nuevo_monto_{i}", float(np['monto'])))
     avance_p = st.session_state.avances.get(f"nuevo_s_{i}", "1. Certificación Pertenencia/Existencia")
     
+    v_gen = st.session_state.avances.get(f"nuevo_eq_gen_{i}", "SIN ASIGNAR").upper().strip()
+    v_seg = st.session_state.avances.get(f"nuevo_eq_seg_{i}", "SIN ASIGNAR").upper().strip()
+    v_adm = st.session_state.avances.get(f"nuevo_eq_adm_{i}", "SIN ASIGNAR").upper().strip()
+    
+    if u_rol_logueado not in ['admin', 'supervisor']:
+        if u_nom_logueado not in [v_gen, v_seg, v_adm]:
+            continue
+            
     if depto_p == dep_sel and proceso_esta_activo(i, es_nuevo=True):
         v_t_a += monto_p
         if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
@@ -503,7 +522,7 @@ if st.session_state.user['rol'] in ['admin', 'supervisor']:
                         st.rerun()
 
 # ==============================================================================
-# --- 7. DISPLAY TOTALMENTE FILTRADO POR PRIVACIDAD Y ROL DE OPERADOR ---
+# --- 7. DISPLAY TOTALMENTE FILTRADO POR PRIVACIDAD REAL MILITAR ---
 # ==============================================================================
 st.markdown("---")
 st.markdown("### 🔍 Buscador de Procesos en Ejecución")
@@ -516,9 +535,6 @@ def sync_estado(k):
 opciones_personal = [admin.upper().strip() for admin in lista_admins_reales]
 if "SIN ASIGNAR" not in opciones_personal: opciones_personal.insert(0, "SIN ASIGNAR")
 
-u_nom_logueado = st.session_state.user['nom'].upper().strip()
-u_rol_logueado = st.session_state.user['rol'].lower().strip()
-
 # --- A. DESPLIEGUE DE PROCESOS NUEVOS MANUALES ---
 for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     depto_p = st.session_state.avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
@@ -530,7 +546,7 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     v_seg = st.session_state.avances.get(f'nuevo_eq_seg_{i}', "SIN ASIGNAR").upper().strip()
     v_adm = st.session_state.avances.get(f'nuevo_eq_adm_{i}', "SIN ASIGNAR").upper().strip()
     
-    # 🔐 FILTRO DE PRIVACIDAD: Si no es admin/supervisor, ocultar si el proceso no le pertenece
+    # 🔐 FILTRO DE PRIVACIDAD CRÍTICO: Si es un usuario operador estándar, aislar visualmente
     if u_rol_logueado not in ['admin', 'supervisor']:
         if u_nom_logueado not in [v_gen, v_seg, v_adm]:
             continue
@@ -612,7 +628,7 @@ if col_desc:
         v_seg = st.session_state.avances.get(f"eq_seg_{r.name}", "SIN ASIGNAR").upper().strip()
         v_adm = st.session_state.avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR").upper().strip()
         
-        # 🔐 FILTRO DE PRIVACIDAD: Si no es admin/supervisor, ocultar si el proceso no le pertenece
+        # 🔐 FILTRO DE PRIVACIDAD CRÍTICO: Si es un usuario operador estándar, aislar visualmente
         if u_rol_logueado not in ['admin', 'supervisor']:
             if u_nom_logueado not in [v_gen, v_seg, v_adm]:
                 continue
