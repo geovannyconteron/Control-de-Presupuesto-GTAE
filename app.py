@@ -150,10 +150,10 @@ st.markdown("""
     div.metric-premium-card {
         background-color: #FFFFFF !important; 
         border-left: 6px solid #134074 !important; 
-        padding: 20px !important;
+        padding: 18px !important;
         border-radius: 8px !important; 
         box-shadow: 0px 4px 15px rgba(0,0,0,0.06) !important; 
-        margin-bottom: 20px !important;
+        margin-bottom: 12px !important;
     }
     
     .stExpander {
@@ -219,18 +219,13 @@ st.sidebar.image(LOGO if os.path.exists(LOGO) else None, width=100)
 st.sidebar.markdown(f"### 👤 **Usuario:** {st.session_state.user['nom']}")
 st.sidebar.markdown(f"### 🪖 **Rol:** {st.session_state.user['rol'].upper()}")
 
-if GITHUB_TOKEN and GITHUB_REPO:
-    st.sidebar.success("🔒 Almacenamiento Permanente Activado")
-else:
-    st.sidebar.warning("⚠️ Modo Local (Configura Secrets en Streamlit)")
-
 dep_sel = st.sidebar.selectbox("Visualizar Departamento:", ["LOGÍSTICA", "OPERACIONES", "OTRAS DEPENDENCIAS"], key="selector_dependencias_fijo_gtae")
 cuat_sel = st.sidebar.radio("Seleccione Cuatrimestre:", ["C1", "C2", "C3"])
 cuat_mapeo = {"C1": "1er Cuatrimestre", "C2": "2do Cuatrimestre", "C3": "3er Cuatrimestre"}
 cuat_filtro_texto = cuat_mapeo[cuat_sel]
 
 # ==============================================================================
-# --- 4. ENGINE DE GENERACIÓN DE REPORTE PDF CON ADMINISTRADOR (CORREGIDO) ---
+# --- 4. ENGINE DE GENERACIÓN DE REPORTE PDF CON ADMINISTRADOR ---
 # ==============================================================================
 def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto):
     pdf = FPDF(orientation='L', unit='mm', format='A4') 
@@ -259,14 +254,13 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
     pdf.cell(0, 6, "1. CONSOLIDADO FINANCIERO DEL PERIODO:", ln=True)
     pdf.set_font("Helvetica", '', 9); pdf.set_fill_color(245, 247, 250)
     pdf.cell(135, 7, f" Presupuesto Planificado Cuatrimestre: ${v_t_a:,.2f}", 1, 0, 'L', True)
-    pdf.cell(142, 8, f" Devengado Real Cuatrimestre: ${v_e_a:,.2f}", 1, 1, 'L', True)
+    pdf.cell(142, 7, f" Devengado Real Cuatrimestre: ${v_e_a:,.2f}", 1, 1, 'L', True)
     pdf.ln(5)
     
     # Tabla Detallada de Procesos Activos
     pdf.set_font("Helvetica", 'B', 9)
     pdf.cell(0, 6, "2. DETALLE DE PROCESOS EN EJECUCION:", ln=True)
     
-    # Cabecera de la tabla (Modificada: Columna de Administrador reemplaza a Partida)
     pdf.set_fill_color(20, 50, 90); pdf.set_text_color(255, 255, 255); pdf.set_font("Helvetica", 'B', 8)
     pdf.cell(135, 6, "Objeto de Contratacion", 1, 0, 'C', True)
     pdf.cell(42, 6, "Administrador", 1, 0, 'C', True)
@@ -274,18 +268,15 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
     pdf.cell(65, 6, "Fase Actual", 1, 1, 'C', True)
     
     pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", '', 7)
-    
     col_desc_pdf = next((c for c in df_items.columns if "DETALLE" in c.upper()), None)
     
-    # A. Datos de procesos del PAC Excel
     if col_desc_pdf:
         for ix, r in df_items.iterrows():
             item_depto = avances.get(f"depto_{r.name}", "LOGÍSTICA")
             item_cuat = avances.get(f"cuat_{r.name}", "1er Cuatrimestre")
             
             if item_depto == depto and item_cuat == cuat:
-                clave_activa = avances.get(f"estado_op_{r.name}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
-                if clave_activa:
+                if avances.get(f"estado_op_{r.name}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]:
                     obj_t = str(avances.get(f"name_{r.name}", r[col_desc_pdf]))[:85]
                     adm_t = str(avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR"))
                     monto_t = float(avances.get(f"monto_{r.name}", float(r['COSTO TOTAL'])))
@@ -296,7 +287,6 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
                     pdf.cell(35, 6, f" ${monto_t:,.2f}", 1, 0, 'R')
                     pdf.cell(65, 6, f" {fase_t}", 1, 1, 'L')
 
-    # B. Datos de procesos Manuales (Extra-PAC)
     for i, np in enumerate(avances.get("procesos_nuevos", [])):
         m_depto = avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
         m_cuat = avances.get(f"nuevo_cuat_{i}", np['cuatrimestre'])
@@ -325,57 +315,103 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
     
     return pdf.output(dest='S').encode('latin1', errors='ignore')
 
-# --- CÁLCULOS PRESUPUESTARIOS ---
+# ==============================================================================
+# --- 5. MOTOR DE PROCESAMIENTO MATEMÁTICO (CUATRIMESTRAL Y ANUAL) ---
+# ==============================================================================
 df_visualizacion = df_pac.copy()
+
+# Variables para el Cuatrimestre específico
+v_t_c, v_e_c = 0.0, 0.0
+# Variables para el Consolidado Anual Global
 v_t_a, v_e_a = 0.0, 0.0
 
+# Procesar PAC Excel
 for idx, row in df_visualizacion.iterrows():
     depto_p = st.session_state.avances.get(f"depto_{row.name}", "LOGÍSTICA")
     cuat_p = st.session_state.avances.get(f"cuat_{row.name}", "1er Cuatrimestre")
     monto_p = float(st.session_state.avances.get(f"monto_{row.name}", float(row['COSTO TOTAL'])))
     avance_p = st.session_state.avances.get(f"s_{row.name}", "Pendiente")
     
-    if depto_p == dep_sel and proceso_esta_activo(row.name, es_nuevo=False) and cuat_p == cuat_filtro_texto:
+    if depto_p == dep_sel and proceso_esta_activo(row.name, es_nuevo=False):
+        # Sumas globales anuales
         v_t_a += monto_p
         if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
             v_e_a += monto_p
+            
+        # Sumas específicas del cuatrimestre seleccionado
+        if cuat_p == cuat_filtro_texto:
+            v_t_c += monto_p
+            if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
+                v_e_c += monto_p
 
+# Procesar Procesos Manuales
 for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     depto_p = st.session_state.avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
     cuat_p = st.session_state.avances.get(f"nuevo_cuat_{i}", np['cuatrimestre'])
     monto_p = float(st.session_state.avances.get(f"nuevo_monto_{i}", float(np['monto'])))
     avance_p = st.session_state.avances.get(f"nuevo_s_{i}", "1. Certificación Pertenencia/Existencia")
     
-    if depto_p == dep_sel and proceso_esta_activo(i, es_nuevo=True) and cuat_p == cuat_filtro_texto:
+    if depto_p == dep_sel and proceso_esta_activo(i, es_nuevo=True):
+        # Sumas globales anuales
         v_t_a += monto_p
         if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
             v_e_a += monto_p
+            
+        # Sumas específicas del cuatrimestre seleccionado
+        if cuat_p == cuat_filtro_texto:
+            v_t_c += monto_p
+            if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
+                v_e_c += monto_p
 
 # ==============================================================================
-# --- 5. PANEL CENTRAL GRÁFICO ---
+# --- 6. PANEL CENTRAL GRÁFICO (REDISEÑO CON METRICAS ANUALES Y CUATRIMESTRALES) ---
 # ==============================================================================
 st.markdown('<div class="main-title-gtae">🛫 Monitor Operativo de Control Presupuestario GTAE</div>', unsafe_allow_html=True)
-st.markdown(f"Módulo de gestión técnica — Departamento: **{dep_sel}** — Periodo: **{cuat_filtro_texto}**")
+st.markdown(f"Módulo de gestión técnica — Departamento: **{dep_sel}**")
 st.markdown("---")
 
-col_met, col_pie = st.columns([1, 1])
-with col_met:
-    st.markdown('<div class="metric-premium-card">', unsafe_allow_html=True)
-    st.metric(f"Presupuesto Planificado {dep_sel.capitalize()}", f"${v_t_a:,.2f}")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="metric-premium-card">', unsafe_allow_html=True)
-    st.metric("Monto Real Devengado Anual", f"${v_e_a:,.2f}", delta=f"{((v_e_a/v_t_a)*100) if v_t_a > 0 else 0:.2f}% de Ejecución")
-    st.markdown('</div>', unsafe_allow_html=True)
+# Estructuración de pestañas de visualización avanzada
+tab_cuat, tab_anual = st.tabs([f"📊 Métricas del Periodo ({cuat_filtro_texto})", "🌍 Consolidado General Anual 2026"])
 
-with col_pie:
-    monto_pendiente = max(0.0, v_t_a - v_e_a)
-    if v_t_a > 0:
-        fig = go.Figure(data=[go.Pie(labels=['Devengado Real', 'Pendiente'], values=[v_e_a, monto_pendiente], hole=.4, marker=dict(colors=['#1E3A8A', '#EF4444']))])
-        fig.update_layout(margin=dict(t=20, b=0, l=0, r=0), height=180, showlegend=True, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info(f"No existen procesos registrados para {dep_sel.lower()} en este cuatrimestre.")
+with tab_cuat:
+    col_met_c, col_pie_c = st.columns([1, 1])
+    with col_met_c:
+        st.markdown('<div class="metric-premium-card">', unsafe_allow_html=True)
+        st.metric(f"Planificado Cuatrimestral", f"${v_t_c:,.2f}")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="metric-premium-card">', unsafe_allow_html=True)
+        st.metric("Devengado Cuatrimestral", f"${v_e_c:,.2f}", delta=f"{((v_e_c/v_t_c)*100) if v_t_c > 0 else 0:.2f}% Del Periodo")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_pie_c:
+        monto_pend_c = max(0.0, v_t_c - v_e_c)
+        if v_t_c > 0:
+            fig_c = go.Figure(data=[go.Pie(labels=['Devengado Periodo', 'Pendiente Periodo'], values=[v_e_c, monto_pend_c], hole=.4, marker=dict(colors=['#1E3A8A', '#EF4444']))])
+            fig_c.update_layout(margin=dict(t=20, b=0, l=0, r=0), height=170, showlegend=True, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig_c, use_container_width=True)
+        else:
+            st.info(f"No existen procesos registrados para {dep_sel.lower()} en el cuatrimestre activo.")
+
+with tab_anual:
+    col_met_a, col_pie_a = st.columns([1, 1])
+    with col_met_a:
+        st.markdown('<div class="metric-premium-card">', unsafe_allow_html=True)
+        st.metric(f"Presupuesto Total Anual Asignado", f"${v_t_a:,.2f}")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="metric-premium-card">', unsafe_allow_html=True)
+        st.metric("Total Devengado Año Completo", f"${v_e_a:,.2f}", delta=f"{((v_e_a/v_t_a)*100) if v_t_a > 0 else 0:.2f}% Eficiencia Ejecución Global")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_pie_a:
+        monto_pend_a = max(0.0, v_t_a - v_e_a)
+        if v_t_a > 0:
+            fig_a = go.Figure(data=[go.Pie(labels=['Devengado Anual Total', 'Remanente Anual'], values=[v_e_a, monto_pend_a], hole=.4, marker=dict(colors=['#10B981', '#F59E0B']))])
+            fig_a.update_layout(margin=dict(t=20, b=0, l=0, r=0), height=170, showlegend=True, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig_a, use_container_width=True)
+        else:
+            st.info(f"No hay registros financieros asignados a este departamento actualmente.")
 
 # Panel de Administración Integrado
 if st.session_state.user['rol'] in ['admin', 'supervisor']:
@@ -421,7 +457,7 @@ if st.session_state.user['rol'] in ['admin', 'supervisor']:
                         st.rerun()
 
 # ==============================================================================
-# --- 6. DISPLAY DE FILTRADO Y EXPANDERS INTERACTIVOS ---
+# --- 7. DISPLAY DE FILTRADO Y EXPANDERS INTERACTIVOS ---
 # ==============================================================================
 st.markdown("---")
 st.markdown("### 🔍 Buscador de Procesos en Ejecución")
@@ -527,7 +563,7 @@ if col_desc:
 
 # --- REPORTE PDF SEPARADO ---
 st.sidebar.markdown("---")
-pdf_bytes = generar_pdf_oficial(st.session_state.user['nom'], df_visualizacion, cuat_filtro_texto, st.session_state.avances, v_e_a, v_t_a, dep_sel)
+pdf_bytes = generar_pdf_oficial(st.session_state.user['nom'], df_visualizacion, cuat_filtro_texto, st.session_state.avances, v_e_c, v_t_c, dep_sel)
 st.sidebar.download_button(label="📥 DESCARGAR REPORTE PDF", data=pdf_bytes, file_name=f"Reporte_{dep_sel}_{cuat_sel}.pdf", mime="application/pdf", use_container_width=True)
 
 if st.sidebar.button("Cerrar Sesión Activa"):
