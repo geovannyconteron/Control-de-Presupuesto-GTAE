@@ -286,7 +286,7 @@ cuat_mapeo = {"C1": "1er Cuatrimestre", "C2": "2do Cuatrimestre", "C3": "3er Cua
 cuat_filtro_texto = cuat_mapeo[cuat_sel]
 
 # ==============================================================================
-# --- 4. ENGINE DE GENERACIÓN DE REPORTE PDF CON ADMINISTRADOR ---
+# --- 4. ENGINE DE GENERACIÓN DE REPORTE PDF CON ADMINISTRADOR Y NOTAS ---
 # ==============================================================================
 def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto):
     pdf = FPDF(orientation='L', unit='mm', format='A4') 
@@ -321,10 +321,11 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
     pdf.cell(0, 6, "2. DETALLE DE PROCESOS EN EJECUCION:", ln=True)
     
     pdf.set_fill_color(20, 50, 90); pdf.set_text_color(255, 255, 255); pdf.set_font("Helvetica", 'B', 8)
-    pdf.cell(135, 6, "Objeto de Contratacion", 1, 0, 'C', True)
-    pdf.cell(42, 6, "Administrador", 1, 0, 'C', True)
-    pdf.cell(35, 6, "Monto Real", 1, 0, 'C', True)
-    pdf.cell(65, 6, "Fase Actual", 1, 1, 'C', True)
+    pdf.cell(100, 6, "Objeto de Contratacion", 1, 0, 'C', True)
+    pdf.cell(35, 6, "Administrador", 1, 0, 'C', True)
+    pdf.cell(25, 6, "Monto Real", 1, 0, 'C', True)
+    pdf.cell(57, 6, "Fase Actual", 1, 0, 'C', True)
+    pdf.cell(60, 6, "Ubicacion / Nota de Seguimiento", 1, 1, 'C', True)
     
     pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", '', 7)
     col_desc_pdf = next((c for c in df_items.columns if "DETALLE" in c.upper()), None)
@@ -336,15 +337,17 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
             
             if item_depto == depto and item_cuat == cuat:
                 if avances.get(f"estado_op_{r.name}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]:
-                    obj_t = str(avances.get(f"name_{r.name}", r[col_desc_pdf]))[:85]
+                    obj_t = str(avances.get(f"name_{r.name}", r[col_desc_pdf]))[:60]
                     adm_t = str(avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR"))
                     monto_t = float(avances.get(f"monto_{r.name}", float(r['COSTO TOTAL'])))
-                    fase_t = str(avances.get(f"s_{r.name}", "Pendiente"))[:38]
+                    fase_t = str(avances.get(f"s_{r.name}", "Pendiente"))[:35]
+                    nota_t = str(avances.get(f"nota_{r.name}", "Sin novedad"))[:40]
                     
-                    pdf.cell(135, 6, f" {obj_t}", 1, 0, 'L')
-                    pdf.cell(42, 6, f" {adm_t}", 1, 0, 'C')
-                    pdf.cell(35, 6, f" ${monto_t:,.2f}", 1, 0, 'R')
-                    pdf.cell(65, 6, f" {fase_t}", 1, 1, 'L')
+                    pdf.cell(100, 6, f" {obj_t}", 1, 0, 'L')
+                    pdf.cell(35, 6, f" {adm_t}", 1, 0, 'C')
+                    pdf.cell(25, 6, f" ${monto_t:,.2f}", 1, 0, 'R')
+                    pdf.cell(57, 6, f" {fase_t}", 1, 0, 'L')
+                    pdf.cell(60, 6, f" {nota_t}", 1, 1, 'L')
 
     for i, np in enumerate(avances.get("procesos_nuevos", [])):
         m_depto = avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
@@ -352,15 +355,17 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
         
         if m_depto == depto and m_cuat == cuat:
             if avances.get(f"nuevo_estado_op_{i}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]:
-                obj_m = str(avances.get(f"nuevo_name_{i}", np['objeto']))[:85]
+                obj_m = str(avances.get(f"nuevo_name_{i}", np['objeto']))[:60]
                 adm_m = str(avances.get(f"nuevo_eq_adm_{i}", "SIN ASIGNAR"))
                 monto_m = float(avances.get(f"nuevo_monto_{i}", float(np['monto'])))
-                fase_m = str(avances.get(f"nuevo_s_{i}", "1. Certificación Pertenencia/Existencia"))[:38]
+                fase_m = str(avances.get(f"nuevo_s_{i}", "1. Certificación Pertenencia/Existencia"))[:35]
+                nota_m = str(avances.get(f"nuevo_nota_{i}", "Sin novedad"))[:40]
                 
-                pdf.cell(135, 6, f" [MANUAL] {obj_m}", 1, 0, 'L')
-                pdf.cell(42, 6, f" {adm_m}", 1, 0, 'C')
-                pdf.cell(35, 6, f" ${monto_m:,.2f}", 1, 0, 'R')
-                pdf.cell(65, 6, f" {fase_m}", 1, 1, 'L')
+                pdf.cell(100, 6, f" [MANUAL] {obj_m}", 1, 0, 'L')
+                pdf.cell(35, 6, f" {adm_m}", 1, 0, 'C')
+                pdf.cell(25, 6, f" ${monto_m:,.2f}", 1, 0, 'R')
+                pdf.cell(57, 6, f" {fase_m}", 1, 0, 'L')
+                pdf.cell(60, 6, f" {nota_m}", 1, 1, 'L')
 
     pdf.ln(12)
     pdf.set_font("Helvetica", 'B', 8)
@@ -555,6 +560,9 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
                 with c3: st.selectbox("Administrador:", opciones_personal, index=opciones_personal.index(v_adm) if v_adm in opciones_personal else 0, key=f"nuevo_eq_adm_{i}", on_change=sync_estado, args=(f"nuevo_eq_adm_{i}",))
             with t2:
                 st.select_slider("Fase actual:", options=puntos_fases, value=st.session_state.avances.get(f"nuevo_s_{i}", puntos_fases[0]), key=f"nuevo_s_{i}", on_change=sync_estado, args=(f"nuevo_s_{i}",))
+                # INTEGRACIÓN DEL CAMPO DE NOTA / UBICACIÓN ACTUAL
+                st.text_input("📍 Ubicación actual / Nota de Seguimiento:", value=st.session_state.avances.get(f"nuevo_nota_{i}", "Sin novedad"), key=f"nuevo_nota_{i}", on_change=sync_estado, args=(f"nuevo_nota_{i}",), placeholder="Ej: En bandeja de firmas físicas o Nombre de la persona física que retiene")
+                
                 st.selectbox("Mover Cuatrimestre:", ["1er Cuatrimestre", "2do Cuatrimestre", "3er Cuatrimestre"], index=["1er Cuatrimestre", "2do Cuatrimestre", "3er Cuatrimestre"].index(cuat_p), key=f"nuevo_cuat_{i}", on_change=sync_estado, args=(f"nuevo_cuat_{i}",))
                 st.selectbox("Reasignar Departamento:", ["LOGÍSTICA", "OPERACIONES", "OTRAS DEPENDENCIAS"], index=["LOGÍSTICA", "OPERACIONES", "OTRAS DEPENDENCIAS"].index(depto_p), key=f"nuevo_depto_{i}", on_change=sync_estado, args=(f"nuevo_depto_{i}",))
             with t3:
@@ -602,6 +610,9 @@ if col_desc:
                     with c3: st.selectbox("Administrador:", opciones_personal, index=opciones_personal.index(v_adm) if v_adm in opciones_personal else 0, key=f"eq_adm_{r.name}", on_change=sync_estado, args=(f"eq_adm_{r.name}",))
                 with t2:
                     st.select_slider("Fase:", options=puntos, value=st.session_state.avances.get(f"s_{r.name}", puntos[0]), key=f"s_{r.name}", on_change=sync_estado, args=(f"s_{r.name}",))
+                    # INTEGRACIÓN DEL CAMPO DE NOTA / UBICACIÓN ACTUAL
+                    st.text_input("📍 Ubicación actual / Nota de Seguimiento:", value=st.session_state.avances.get(f"nota_{r.name}", "Sin novedad"), key=f"nota_{r.name}", on_change=sync_estado, args=(f"nota_{r.name}",), placeholder="Ej: Enviado a DIRCOP para revisión de pliegos / Pendiente firma Econ. Albuja")
+                    
                     st.selectbox("Mover de Cuatrimestre:", ["1er Cuatrimestre", "2do Cuatrimestre", "3er Cuatrimestre"], index=["1er Cuatrimestre", "2do Cuatrimestre", "3er Cuatrimestre"].index(cuat_p), key=f"cuat_{r.name}", on_change=sync_estado, args=(f"cuat_{r.name}",))
                     st.selectbox("Transferir Departamento:", ["LOGÍSTICA", "OPERACIONES", "OTRAS DEPENDENCIAS"], index=["LOGÍSTICA", "OPERACIONES", "OTRAS DEPENDENCIAS"].index(depto_p), key=f"depto_{r.name}", on_change=sync_estado, args=(f"depto_{r.name}",))
                 with t3:
