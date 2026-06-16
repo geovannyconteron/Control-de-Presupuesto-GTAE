@@ -21,7 +21,6 @@ DB_FILE = "progreso_logistica.json"
 LOGO, PAC = "Sello GTAE.png", "2026 02 01 - reforma pac logistica.xlsx"
 URL_BASE_FAE = "https://almacenamiento.fae.mil.ec/index.php/apps/dashboard/"
 
-# El sistema lee de forma invisible los datos desde la cabina de Streamlit sin exponerlos en el código
 GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", None)
 GITHUB_REPO = st.secrets.get("GITHUB_REPO", None)
 
@@ -66,7 +65,6 @@ else:
 if "procesos_nuevos" not in st.session_state.avances:
     st.session_state.avances["procesos_nuevos"] = []
 
-# --- DEFINICIÓN FUNDAMENTAL DE ACTIVIDAD DE PROCESOS ---
 def proceso_esta_activo(idx, es_nuevo=False):
     """Verifica si un proceso no ha sido cancelado o anulado por la jefatura."""
     clave = f"nuevo_estado_op_{idx}" if es_nuevo else f"estado_op_{idx}"
@@ -113,7 +111,7 @@ for admin in lista_admins_reales:
 # ==============================================================================
 st.markdown("""
     <style>
-    .stApp { background-color: #F8FAFC !important; }
+    .stApp { background-color: #F4F6F9 !important; }
     
     /* Contenedor del Login Centrado */
     .login-wrapper {
@@ -126,7 +124,6 @@ st.markdown("""
         text-align: center;
     }
     .login-wrapper h2 { color: #FFFFFF !important; font-weight: 800; margin-bottom: 25px; font-size: 24px; }
-    .login-wrapper label { color: #FFFFFF !important; font-weight: 600 !important; text-align: left !important; display: block; }
     
     /* Forzar textos blancos legibles en la barra lateral */
     [data-testid="stSidebar"] { background-color: #0B2545 !important; min-width: 320px !important; }
@@ -142,7 +139,7 @@ st.markdown("""
     /* Visibilidad para desplegables internos */
     div[data-baseweb="select"] li span, div[data-baseweb="select"] div { color: #1E293B !important; }
     
-    /* Botones de la barra lateral y accesos */
+    /* Botones del Sistema */
     [data-testid="stSidebar"] button, .login-wrapper button {
         background: #134074 !important;
         color: #FFFFFF !important; 
@@ -155,14 +152,14 @@ st.markdown("""
     }
     [data-testid="stSidebar"] button:hover, .login-wrapper button:hover { background: #1E40AF !important; box-shadow: 0px 4px 12px rgba(255,255,255,0.2); }
     
-    /* Tarjetas del Monitor Central */
-    div.metric-premium {
-        background-color: #FFFFFF; 
-        border-left: 6px solid #134074; 
-        padding: 20px;
-        border-radius: 8px; 
-        box-shadow: 0px 4px 14px rgba(0,0,0,0.05); 
-        margin-bottom: 15px;
+    /* Tarjetas del Monitor Central - Reparación Completa */
+    div.metric-container-premium {
+        background-color: #FFFFFF !important; 
+        border-left: 6px solid #134074 !important; 
+        padding: 20px !important;
+        border-radius: 8px !important; 
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.08) !important; 
+        margin-bottom: 20px !important;
     }
     
     .stExpander {
@@ -171,6 +168,17 @@ st.markdown("""
         border-radius: 8px !important;
         box-shadow: 0px 3px 10px rgba(0,0,0,0.03) !important;
         margin-bottom: 12px !important;
+    }
+    
+    /* Encabezados */
+    .main-title {
+        color: #0B2545 !important;
+        font-size: 32px !important;
+        font-weight: 800 !important;
+        margin-bottom: 5px !important;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
     
     h1, h2, h3 { color: #0B2545 !important; font-weight: 800; }
@@ -205,8 +213,8 @@ if st.session_state.user is None:
 @st.cache_data
 def load_data():
     px = ["1. Certificación Pertenencia/Existencia (Anexo A/B)", "2. Informe Borrador y Control Previo", "3. Subsanación de observaciones", "4. Informe de Necesidad RESERVADO al Jefe CMP", "5. Estudio de Mercado (Min. 3 proformas - Anexo I)", "6. Suscripción de TDRs y parámetros de experiencia", "7. Solicitud de listado de oferentes a DIRCOP", "8. Autorización de Invitación por Jefe CMP", "9. Invitación por Correo Institucional (Anexo J)", "10. Entrega de TDRs contra manifestación de interés", "11. Informe de Inteligencia Protectiva (Oferentes)", "12. Evaluación de Comisión (Anexo N)", "13. Elaboración de Formulario de Requerimiento (Anexo P)", "14. Certificado de Cumplimiento y Presupuestaria", "15. Resolución de Inicio y Aprobación de Pliegos", "16. Adjudicación y Suscripción del Contrato"]
-    inf = ["1. Certificación Pertenencia/Existencia", "2. Control Previo e Informe Borrador (DIRCOP)", "3. Informe de Necesidad RESERVADO al CAF", "4. Autorización de la Coordinación Adm. Financiera", "5. Invitación RESERVADA (RUC/CPC habilitado)", "6. Recepción de propuestas (Reglas de Participación)", "7. Informe de Inteligencia Protectiva", "8. Razón de Proformas (DIRCOP - Anexo S)", "9. Selección de Proveedor y Det. Presupuesto (Anexo Q)", "10. Formulario de Cumplimiento Etapa Preparatoria (Anexo T)", "11. Obtención de Certificación Presupuestaria", "12. Declaración Juramentada del Oferente (Anexo U)", "13. Elaboración de Orden de Compra sumillada", "14. Legalización por el CAF and Execution"]
-    ext = ["1. Certificación Pertenencia/Existencia de bienes", "2. Revisión técnica/financiera del Informe Borrador", "3. Informe de Necesidad RESERVADO (Exclusividad)", "4. Estudio de Mercado con proformas vigentes", "5. Búsqueda y listado de proveedores internacionales", "6. Invitación formal por Mail Institucional (Anexo J)", "7. Evaluación Comisión Selección (Anexo O)", "8. Formulario de Requerimiento (Anexo P)", "9. Certificado de Cumplimiento y Presupuestaria", "10. Solicitud de inicio al Jefe CMP", "11. Resolución Fundamentada de Inicio", "12. Suscripción de Orden de Compra/Servicio", "13. Execution (Prácticas Internacionales)"]
+    inf = ["1. Certificación Pertenencia/Existencia", "2. Control Previo e Informe Borrador (DIRCOP)", "3. Informe de Necesidad RESERVADO al CAF", "4. Autorización de la Coordinación Adm. Financiera", "5. Invitación RESERVADA (RUC/CPC habilitado)", "6. Recepción de propuestas (Reglas de Participación)", "7. Informe de Inteligencia Protectiva", "8. Razón de Proformas (DIRCOP - Anexo S)", "9. Selección de Proveedor y Det. Presupuesto (Anexo Q)", "10. Formulario de Cumplimiento Etapa Preparatoria (Anexo T)", "11. Obtención de Certificación Presupuestaria", "12. Declaración Juramentada del Oferente (Anexo U)", "13. Elaboración de Orden de Compra sumillada", "14. Legalización por el CAF y Execution"]
+    ext = ["1. Certificación Pertenencia/Existencia de bienes", "2. Revisión técnica/financiera del Informe Borrador", "3. Informe de Necesidad RESERVADO (Exclusividad)", "4. Estudio de Mercado con proformas vigentes", "5. Búsqueda y listado de proveedores internacionales", "6. Invitación formal por Mail Institucional (Anexo J)", "7. Evaluación Comisión Selección (Anexo O)", "8. Formulario de Requerimiento (Anexo P)", "9. Certificado de Cumplimiento y Presupuestaria", "10. Solicitud de inicio al Jefe CMP", "11. Resolución Fundamentada de Inicio", "12. Suscripción de Orden de Compra/Servicio", "13. Ejecución (Prácticas Internacionales)"]
     
     p1 = pd.read_excel(PAC, sheet_name='PUBLICADO', skiprows=3)
     p2 = pd.read_excel(PAC, sheet_name='RESERVADO', skiprows=4)
@@ -223,7 +231,6 @@ st.sidebar.image(LOGO if os.path.exists(LOGO) else None, width=100)
 st.sidebar.markdown(f"### 👤 **Usuario:** {st.session_state.user['nom']}")
 st.sidebar.markdown(f"### 🪖 **Rol:** {st.session_state.user['rol'].upper()}")
 
-# Estado dinámico del Candado según la presencia de los Secrets
 if GITHUB_TOKEN and GITHUB_REPO:
     st.sidebar.success("🔒 Almacenamiento Permanente Activado")
 else:
@@ -295,25 +302,27 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
             v_e_a += monto_p
 
 # ==============================================================================
-# --- 5. PANEL CENTRAL GRÁFICO ---
+# --- 5. PANEL CENTRAL GRÁFICO (REDISEÑO PREMIUM) ---
 # ==============================================================================
+st.markdown('<div class="main-title">🛫 Monitor Operativo de Control Presupuestario GTAE</div>', unsafe_allow_html=True)
 st.markdown(f"Módulo de gestión técnica — Departamento: **{dep_sel}** — Periodo: **{cuat_filtro_texto}**")
+st.markdown("---")
 
 col_met, col_pie = st.columns([1, 1])
 with col_met:
-    st.markdown('<div class="metric-premium">', unsafe_allow_html=True)
+    st.markdown('<div class="metric-container-premium">', unsafe_allow_html=True)
     st.metric(f"Presupuesto Planificado {dep_sel.capitalize()}", f"${v_t_a:,.2f}")
     st.markdown('</div>', unsafe_allow_html=True)
     
-    st.markdown('<div class="metric-premium">', unsafe_allow_html=True)
-    st.metric("Monto Real Devengado Anual", f"${v_e_a:,.2f}", delta=f"{((v_e_a/v_t_a)*100) if v_t_a > 0 else 0:.2f}% de Ejecución")
+    st.markdown('<div class="metric-container-premium">', unsafe_allow_html=True)
+    st.metric("Monto Real Devengado Anual", f"${v_e_a:,.2f}", delta=f"{((v_e_a/v_t_a)*100) if v_t_a > 0 else 0:.2f}% de Execution")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col_pie:
     monto_pendiente = max(0.0, v_t_a - v_e_a)
     if v_t_a > 0:
         fig = go.Figure(data=[go.Pie(labels=['Devengado Real', 'Pendiente'], values=[v_e_a, monto_pendiente], hole=.4, marker=dict(colors=['#1E3A8A', '#EF4444']))])
-        fig.update_layout(margin=dict(t=20, b=0, l=0, r=0), height=180, showlegend=True)
+        fig.update_layout(margin=dict(t=20, b=0, l=0, r=0), height=180, showlegend=True, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info(f"No existen procesos registrados para {dep_sel.lower()} en este cuatrimestre.")
