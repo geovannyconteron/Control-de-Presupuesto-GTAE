@@ -1,0 +1,8 @@
+streamlit
+pandas
+plotly
+fpdf
+google-api-python-client
+google-auth
+mock
+openpyxl
