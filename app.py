@@ -65,7 +65,7 @@ else:
 if "procesos_nuevos" not in st.session_state.avances:
     st.session_state.avances["procesos_nuevos"] = []
 
-def proceso_esta_activo(idx, es_nuevo=False):
+def process_esta_activo(idx, es_nuevo=False):
     clave = f"nuevo_estado_op_{idx}" if es_nuevo else f"estado_op_{idx}"
     return st.session_state.avances.get(clave, "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
 
@@ -371,7 +371,7 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
     return pdf.output(dest='S').encode('latin1', errors='ignore')
 
 # ==============================================================================
-# --- 5. MOTOR MATEMÁTICO UNIVERSAL ---
+# --- 5. MOTOR MATEMÁTICO UNIVERSAL FAE ---
 # ==============================================================================
 df_visualizacion = df_pac.copy()
 
@@ -459,7 +459,7 @@ with tab_anual:
         else:
             st.info(f"No cuenta con fondos asignados bajo su responsabilidad para este año.")
 
-# Panel de Administración Integrado (Solo Administradores/Supervisores manejan altas)
+# Panel de Administración Integrado
 if st.session_state.user['rol'] in ['admin', 'supervisor']:
     with st.expander("🛠️ Panel de Administración (Registrar Personal y Nuevos Procesos Extra-PAC)"):
         t_pers, t_proc = st.tabs(["👥 Gestión de Personal", "➕ Incluir Nuevo Proceso Manual"])
@@ -503,7 +503,7 @@ if st.session_state.user['rol'] in ['admin', 'supervisor']:
                         st.rerun()
 
 # ==============================================================================
-# --- 7. DISPLAY TOTALMENTE LIBERADO CON LOGICA DE BUSQUEDA TOLERANTE ---
+# --- 7. DISPLAY TOTALMENTE FILTRADO POR PRIVACIDAD Y ROL DE OPERADOR ---
 # ==============================================================================
 st.markdown("---")
 st.markdown("### 🔍 Buscador de Procesos en Ejecución")
@@ -516,6 +516,9 @@ def sync_estado(k):
 opciones_personal = [admin.upper().strip() for admin in lista_admins_reales]
 if "SIN ASIGNAR" not in opciones_personal: opciones_personal.insert(0, "SIN ASIGNAR")
 
+u_nom_logueado = st.session_state.user['nom'].upper().strip()
+u_rol_logueado = st.session_state.user['rol'].lower().strip()
+
 # --- A. DESPLIEGUE DE PROCESOS NUEVOS MANUALES ---
 for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     depto_p = st.session_state.avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
@@ -523,18 +526,21 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     
     if depto_p != dep_sel: continue
     
-    # Lógica Indulgente: Si el usuario busca algo, no filtramos por cuatrimestre para asegurar que aparezca
-    if query.strip():
-        if query.lower() not in np['objeto'].lower(): continue
-    else:
-        # Si no está buscando, homologamos cadenas para evitar fallos de formato oculto
-        if cuat_p.strip().upper()[:2] != cuat_filtro_texto.strip().upper()[:2]:
-            continue
-        
     v_gen = st.session_state.avances.get(f'nuevo_eq_gen_{i}', "SIN ASIGNAR").upper().strip()
     v_seg = st.session_state.avances.get(f'nuevo_eq_seg_{i}', "SIN ASIGNAR").upper().strip()
     v_adm = st.session_state.avances.get(f'nuevo_eq_adm_{i}', "SIN ASIGNAR").upper().strip()
     
+    # 🔐 FILTRO DE PRIVACIDAD: Si no es admin/supervisor, ocultar si el proceso no le pertenece
+    if u_rol_logueado not in ['admin', 'supervisor']:
+        if u_nom_logueado not in [v_gen, v_seg, v_adm]:
+            continue
+            
+    if query.strip():
+        if query.lower() not in np['objeto'].lower(): continue
+    else:
+        if cuat_p.strip().upper()[:2] != cuat_filtro_texto.strip().upper()[:2]:
+            continue
+        
     es_activo = st.session_state.avances.get(f"nuevo_estado_op_{i}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
     monto_t = float(st.session_state.avances.get(f"nuevo_monto_{i}", float(np['monto'])))
     puntos_fases = inf_s if "INFIMA" in np['tipo'] else (ext_s if "EXTRANJERO" in np['tipo'] else px_s)
@@ -602,6 +608,15 @@ if col_desc:
         
         if depto_p != dep_sel: continue
         
+        v_gen = st.session_state.avances.get(f"eq_gen_{r.name}", "SIN ASIGNAR").upper().strip()
+        v_seg = st.session_state.avances.get(f"eq_seg_{r.name}", "SIN ASIGNAR").upper().strip()
+        v_adm = st.session_state.avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR").upper().strip()
+        
+        # 🔐 FILTRO DE PRIVACIDAD: Si no es admin/supervisor, ocultar si el proceso no le pertenece
+        if u_rol_logueado not in ['admin', 'supervisor']:
+            if u_nom_logueado not in [v_gen, v_seg, v_adm]:
+                continue
+        
         if query.strip():
             if query.lower() not in str(r[col_desc]).lower(): continue
         else:
@@ -612,10 +627,6 @@ if col_desc:
         puntos = inf_s if "INFIMA" in proc_text else (ext_s if "EXTRANJERO" in proc_text or "PEX" in proc_text else px_s)
         es_activo = st.session_state.avances.get(f"estado_op_{r.name}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
         monto_tarjeta = float(st.session_state.avances.get(f"monto_{r.name}", float(r['COSTO TOTAL'])))
-        
-        v_gen = st.session_state.avances.get(f"eq_gen_{r.name}", "SIN ASIGNAR").upper().strip()
-        v_seg = st.session_state.avances.get(f"eq_seg_{r.name}", "SIN ASIGNAR").upper().strip()
-        v_adm = st.session_state.avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR").upper().strip()
         
         titulo_tarjeta = f"🔹 {r[col_desc]} - ${monto_tarjeta:,.2f} ({cuat_p})" if es_activo else f"❌ [ANULADO] {r[col_desc]}"
         with st.expander(titulo_tarjeta):
