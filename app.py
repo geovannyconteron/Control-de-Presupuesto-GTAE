@@ -66,6 +66,12 @@ else:
 if "procesos_nuevos" not in st.session_state.avances:
     st.session_state.avances["procesos_nuevos"] = []
 
+# --- DEFINICIÓN FUNDAMENTAL DE ACTIVIDAD DE PROCESOS ---
+def proceso_esta_activo(idx, es_nuevo=False):
+    """Verifica si un proceso no ha sido cancelado o anulado por la jefatura."""
+    clave = f"nuevo_estado_op_{idx}" if es_nuevo else f"estado_op_{idx}"
+    return st.session_state.avances.get(clave, "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
+
 def guardar_base_datos(datos):
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(datos, f, ensure_ascii=False, indent=4)
@@ -199,7 +205,7 @@ if st.session_state.user is None:
 @st.cache_data
 def load_data():
     px = ["1. Certificación Pertenencia/Existencia (Anexo A/B)", "2. Informe Borrador y Control Previo", "3. Subsanación de observaciones", "4. Informe de Necesidad RESERVADO al Jefe CMP", "5. Estudio de Mercado (Min. 3 proformas - Anexo I)", "6. Suscripción de TDRs y parámetros de experiencia", "7. Solicitud de listado de oferentes a DIRCOP", "8. Autorización de Invitación por Jefe CMP", "9. Invitación por Correo Institucional (Anexo J)", "10. Entrega de TDRs contra manifestación de interés", "11. Informe de Inteligencia Protectiva (Oferentes)", "12. Evaluación de Comisión (Anexo N)", "13. Elaboración de Formulario de Requerimiento (Anexo P)", "14. Certificado de Cumplimiento y Presupuestaria", "15. Resolución de Inicio y Aprobación de Pliegos", "16. Adjudicación y Suscripción del Contrato"]
-    inf = ["1. Certificación Pertenencia/Existencia", "2. Control Previo e Informe Borrador (DIRCOP)", "3. Informe de Necesidad RESERVADO al CAF", "4. Autorización de la Coordinación Adm. Financiera", "5. Invitación RESERVADA (RUC/CPC habilitado)", "6. Recepción de propuestas (Reglas de Participación)", "7. Informe de Inteligencia Protectiva", "8. Razón de Proformas (DIRCOP - Anexo S)", "9. Selección de Proveedor y Det. Presupuesto (Anexo Q)", "10. Formulario de Cumplimiento Etapa Preparatoria (Anexo T)", "11. Obtención de Certificación Presupuestaria", "12. Declaración Juramentada del Oferente (Anexo U)", "13. Elaboración de Orden de Compra sumillada", "14. Legalización por el CAF y Execution"]
+    inf = ["1. Certificación Pertenencia/Existencia", "2. Control Previo e Informe Borrador (DIRCOP)", "3. Informe de Necesidad RESERVADO al CAF", "4. Autorización de la Coordinación Adm. Financiera", "5. Invitación RESERVADA (RUC/CPC habilitado)", "6. Recepción de propuestas (Reglas de Participación)", "7. Informe de Inteligencia Protectiva", "8. Razón de Proformas (DIRCOP - Anexo S)", "9. Selección de Proveedor y Det. Presupuesto (Anexo Q)", "10. Formulario de Cumplimiento Etapa Preparatoria (Anexo T)", "11. Obtención de Certificación Presupuestaria", "12. Declaración Juramentada del Oferente (Anexo U)", "13. Elaboración de Orden de Compra sumillada", "14. Legalización por el CAF and Execution"]
     ext = ["1. Certificación Pertenencia/Existencia de bienes", "2. Revisión técnica/financiera del Informe Borrador", "3. Informe de Necesidad RESERVADO (Exclusividad)", "4. Estudio de Mercado con proformas vigentes", "5. Búsqueda y listado de proveedores internacionales", "6. Invitación formal por Mail Institucional (Anexo J)", "7. Evaluación Comisión Selección (Anexo O)", "8. Formulario de Requerimiento (Anexo P)", "9. Certificado de Cumplimiento y Presupuestaria", "10. Solicitud de inicio al Jefe CMP", "11. Resolución Fundamentada de Inicio", "12. Suscripción de Orden de Compra/Servicio", "13. Execution (Prácticas Internacionales)"]
     
     p1 = pd.read_excel(PAC, sheet_name='PUBLICADO', skiprows=3)
@@ -266,7 +272,6 @@ def generar_pdf_oficial(inspector, df, cuat, estados, v_e_a, v_t_a, depto):
 df_visualizacion = df_pac.copy()
 v_t_a, v_e_a = 0.0, 0.0
 
-# CORRECCIÓN DE LA VARIABLE: dep_sel corregido en todo el bloque
 for idx, row in df_visualizacion.iterrows():
     depto_p = st.session_state.avances.get(f"depto_{row.name}", "LOGÍSTICA")
     cuat_p = st.session_state.avances.get(f"cuat_{row.name}", "1er Cuatrimestre")
