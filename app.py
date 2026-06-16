@@ -105,11 +105,9 @@ for admin in lista_admins_reales:
         partes = admin.split()
         apellido_base = partes[0].replace(".", "").lower()
         
-        # Si el apellido base no existe, se asigna directo
         if apellido_base not in USR:
             USR[apellido_base] = {"nom": admin, "pin": "2026", "rol": "user"}
         else:
-            # Si el apellido ya existe y no es la misma persona, buscamos una variante única
             if USR[apellido_base]["nom"] != admin:
                 if len(partes) > 1:
                     inicial_nombre = partes[1].replace(".", "").lower()
@@ -117,7 +115,6 @@ for admin in lista_admins_reales:
                 else:
                     variante = f"{apellido_base}2"
                 
-                # Bucle de seguridad por si hay más de dos duplicados
                 contador = 2
                 while variante in USR and USR[variante]["nom"] != admin:
                     variante = f"{apellido_base}{contador}"
@@ -126,36 +123,51 @@ for admin in lista_admins_reales:
                 USR[variante] = {"nom": admin, "pin": "2026", "rol": "user"}
 
 # ==============================================================================
-# --- 2. INYECCIÓN DE ESTILOS CSS INSTITUCIONALES (REDISEÑO DE LOGIN COMPACTO) ---
+# --- 2. INYECCIÓN DE ESTILOS CSS INSTITUCIONALES (DISEÑO ACCESO INALTERABLE) ---
 # ==============================================================================
 st.markdown("""
     <style>
     .stApp { background-color: #F8FAFC !important; }
     
-    /* Centrado absoluto y compactación de la pantalla de acceso de la captura image_ed82c4.jpg */
-    .login-wrapper-gtae {
-        max-width: 380px !important;
-        margin: 70px auto !important;
-        background-color: #FFFFFF;
-        padding: 35px 40px 40px 40px;
-        border-radius: 12px;
-        box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.08);
+    /* Contenedor central estricto para los elementos nativos de Streamlit */
+    .login-container-gtae {
+        max-width: 380px;
+        margin: 40px auto 10px auto !important;
         text-align: center;
-        border: 1px solid #E2E8F0;
     }
     
-    .login-wrapper-gtae h2 { 
-        color: #0B2545 !important; 
-        font-weight: 800; 
+    .login-title-gtae {
+        color: #0B2545 !important;
+        font-size: 26px !important;
+        font-weight: 800 !important;
         margin-top: 15px !important;
-        margin-bottom: 25px !important; 
-        font-size: 24px; 
+        margin-bottom: 25px !important;
+        text-align: center;
     }
-    
-    .logo-centered-gtae {
-        display: block;
-        margin: 0 auto !important;
-        width: 140px !important;
+
+    /* Estilizado directo sobre los bloques de input nativos para acoplarlos al tamaño justo */
+    div[data-testid="stTextInput"] {
+        max-width: 380px !important;
+        margin: 0 auto 15px auto !important;
+    }
+
+    /* Estilizado estricto del botón de ingreso */
+    div[data-testid="stButton"] button {
+        max-width: 380px !important;
+        margin: 10px auto 0 auto !important;
+        background: #134074 !important;
+        color: #FFFFFF !important; 
+        border: 1px solid #134074 !important;
+        border-radius: 6px !important; 
+        font-weight: bold !important;
+        width: 100% !important; 
+        height: 44px;
+        font-size: 15px !important;
+        transition: all 0.3s ease;
+    }
+    div[data-testid="stButton"] button:hover { 
+        background: #1E40AF !important; 
+        border-color: #1E40AF !important; 
     }
     
     /* Panel lateral izquierdo del monitor operativo */
@@ -171,7 +183,7 @@ st.markdown("""
     
     div[data-baseweb="select"] li span, div[data-baseweb="select"] div { color: #1E293B !important; }
     
-    [data-testid="stSidebar"] button, .login-wrapper-gtae button {
+    [data-testid="stSidebar"] button {
         background: #134074 !important;
         color: #FFFFFF !important; 
         border: 1px solid #134074 !important;
@@ -181,7 +193,7 @@ st.markdown("""
         height: 42px; 
         transition: all 0.3s ease;
     }
-    [data-testid="stSidebar"] button:hover, .login-wrapper-gtae button:hover { background: #1E40AF !important; border-color: #1E40AF !important; }
+    [data-testid="stSidebar"] button:hover { background: #1E40AF !important; border-color: #1E40AF !important; }
     
     div.metric-premium-card {
         background-color: #FFFFFF !important; 
@@ -214,11 +226,14 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 if st.session_state.user is None:
-    st.markdown('<div class="login-wrapper-gtae">', unsafe_allow_html=True)
+    # Encabezado visual centrado
+    st.markdown('<div class="login-container-gtae">', unsafe_allow_html=True)
     if os.path.exists(LOGO): 
         st.image(LOGO, width=130)
-    st.markdown("<h2>Acceso Sistema GTAE</h2>", unsafe_allow_html=True)
+    st.markdown('<div class="login-title-gtae">Acceso Sistema GTAE</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     
+    # Inputs nativos controlados por CSS global sin envoltorios HTML directos
     u = st.text_input("Usuario Corporativo:", key="input_user_login").strip().lower()
     p = st.text_input("PIN Militar de Seguridad:", type="password", key="input_pin_login").strip()
     
@@ -229,7 +244,6 @@ if st.session_state.user is None:
         else:
             st.error("Credenciales militares incorrectas.")
             
-    st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
 # ==============================================================================
@@ -291,7 +305,6 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
     pdf.cell(0, 8, f"REPORTE TECNICO DE EJECUCION PRESUPUESTARIA - {cuat.upper()}", 0, 1, 'C', True)
     pdf.ln(4)
     
-    # Tabla de Resumen Financiero
     pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", 'B', 9)
     pdf.cell(0, 6, "1. CONSOLIDADO FINANCIERO DEL PERIODO:", ln=True)
     pdf.set_font("Helvetica", '', 9); pdf.set_fill_color(245, 247, 250)
@@ -299,7 +312,6 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
     pdf.cell(142, 7, f" Devengado Real Cuatrimestre: ${v_e_a:,.2f}", 1, 1, 'L', True)
     pdf.ln(5)
     
-    # Tabla Detallada de Procesos Activos
     pdf.set_font("Helvetica", 'B', 9)
     pdf.cell(0, 6, "2. DETALLE DE PROCESOS EN EJECUCION:", ln=True)
     
