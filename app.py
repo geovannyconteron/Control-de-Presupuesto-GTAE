@@ -226,14 +226,19 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 if st.session_state.user is None:
-    # Encabezado visual centrado
+    # 1. Forzar contenedor del título centrado
     st.markdown('<div class="login-container-gtae">', unsafe_allow_html=True)
-    if os.path.exists(LOGO): 
-        st.image(LOGO, width=130)
+    
+    # 2. Centrado absoluto del Sello usando columnas balanceadas (30% - 40% - 30%)
+    if os.path.exists(LOGO):
+        col_izq, col_centro, col_der = st.columns([1.2, 1, 1.2])
+        with col_centro:
+            st.image(LOGO, use_container_width=True)
+            
     st.markdown('<div class="login-title-gtae">Acceso Sistema GTAE</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Inputs nativos controlados por CSS global sin envoltorios HTML directos
+    # Inputs nativos controlados por CSS global
     u = st.text_input("Usuario Corporativo:", key="input_user_login").strip().lower()
     p = st.text_input("PIN Militar de Seguridad:", type="password", key="input_pin_login").strip()
     
