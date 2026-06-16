@@ -302,7 +302,7 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto,
     pdf.ln(4)
     
     pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", 'B', 9)
-    pdf.cell(0, 6, "1. CONSOLIDADO FINANCIERO DEL PERIODO:", ln=True)
+    pdf.cell(0, 6, "1. CONSOLIDADO FINANCIERO DEL PERIOSO:", ln=True)
     pdf.set_font("Helvetica", '', 9); pdf.set_fill_color(245, 247, 250)
     pdf.cell(135, 7, f" Presupuesto Planificado Cuatrimestre: ${v_t_a:,.2f}", 1, 0, 'L', True)
     pdf.cell(142, 7, f" Devengado Real Cuatrimestre: ${v_e_a:,.2f}", 1, 1, 'L', True)
@@ -491,7 +491,7 @@ with tab_anual:
         else:
             st.info(f"No cuenta con fondos asignados bajo su responsabilidad para este año.")
 
-# Panel de Administración Integrado
+# Panel de Administración Integrado (Solo Administradores/Supervisores manejan altas e inyección inicial)
 if st.session_state.user['rol'] in ['admin', 'supervisor']:
     with st.expander("🛠️ Panel de Administración (Registrar Personal y Nuevos Procesos Extra-PAC)"):
         t_pers, t_proc = st.tabs(["👥 Gestión de Personal", "➕ Incluir Nuevo Proceso Manual"])
@@ -535,7 +535,7 @@ if st.session_state.user['rol'] in ['admin', 'supervisor']:
                         st.rerun()
 
 # ==============================================================================
-# --- 7. DISPLAY DE FILTRADO Y EXPANDERS INTERACTIVOS CORREGIDOS ---
+# --- 7. DISPLAY DE FILTRADO Y EXPANDERS INTERACTIVOS (EDICIÓN PARA ENCARGADOS) ---
 # ==============================================================================
 st.markdown("---")
 st.markdown("### 🔍 Buscador de Procesos en Ejecución")
@@ -578,58 +578,40 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
         if es_activo:
             t1, t2, t3 = st.tabs(["📋 Detalles y Equipo", "📍 Avance", "📂 Expediente"])
             with t1:
-                if st.session_state.user['rol'] in ['admin', 'supervisor']:
-                    st.text_input("Objeto:", value=st.session_state.avances.get(f"nuevo_name_{i}", np['objeto']), key=f"nuevo_name_{i}", on_change=sync_estado, args=(f"nuevo_name_{i}",))
+                # Modificable por cualquier encargado con acceso al proceso
+                st.text_input("Objeto:", value=st.session_state.avances.get(f"nuevo_name_{i}", np['objeto']), key=f"nuevo_name_{i}", on_change=sync_estado, args=(f"nuevo_name_{i}",))
+                
+                st.markdown("##### 💵 Control y Ejecución Financiera")
+                c_asig, c_cert, c_comp, c_dev = st.columns(4)
+                with c_asig:
+                    val_asignado = st.number_input("Valor Asignado (Planificado):", value=monto_t, key=f"nuevo_monto_{i}", on_change=sync_estado, args=(f"nuevo_monto_{i}",), format="%.2f")
+                with c_cert:
+                    val_certificado = st.number_input("Valor Certificado:", value=float(st.session_state.avances.get(f"nuevo_val_cert_{i}", 0.0)), key=f"nuevo_val_cert_{i}", on_change=sync_estado, args=(f"nuevo_val_cert_{i}",), format="%.2f")
+                with c_comp:
+                    val_comprometido = st.number_input("Valor Comprometido:", value=float(st.session_state.avances.get(f"nuevo_val_comp_{i}", 0.0)), key=f"nuevo_val_comp_{i}", on_change=sync_estado, args=(f"nuevo_val_comp_{i}",), format="%.2f")
+                with c_dev:
+                    val_devengado = st.number_input("Valor Devengado:", value=float(st.session_state.avances.get(f"nuevo_val_dev_{i}", 0.0)), key=f"nuevo_val_dev_{i}", on_change=sync_estado, args=(f"nuevo_val_dev_{i}",), format="%.2f")
+                
+                saldo_pendiente = max(0.0, val_asignado - val_devengado)
+                st.info(f"📊 **Saldo Pendiente (Planificado - Devengado):** ${saldo_pendiente:,.2f}")
+                
+                st.markdown("##### 📑 Trazabilidad de Documentos Oficiales")
+                c_doc1, c_doc2, c_doc3, c_doc4 = st.columns(4)
+                with c_doc1:
+                    st.text_input("Nro. Certificación Presupuestaria:", value=st.session_state.avances.get(f"nuevo_doc_cert_{i}", ""), key=f"nuevo_doc_cert_{i}", on_change=sync_estado, args=(f"nuevo_doc_cert_{i}",), placeholder="Ej: CP-012")
+                with c_doc2:
+                    st.text_input("Nro. Compromiso de Pago:", value=st.session_state.avances.get(f"nuevo_doc_comp_{i}", ""), key=f"nuevo_doc_comp_{i}", on_change=sync_estado, args=(f"nuevo_doc_comp_{i}",), placeholder="Ej: CP-548")
+                with c_doc3:
+                    st.text_input("Nro. Orden de Gasto:", value=st.session_state.avances.get(f"nuevo_doc_gasto_{i}", ""), key=f"nuevo_doc_gasto_{i}", on_change=sync_estado, args=(f"nuevo_doc_gasto_{i}",), placeholder="Ej: OG-105")
+                with c_doc4:
+                    st.text_input("Nro. Transferencia / CUR:", value=st.session_state.avances.get(f"nuevo_doc_trans_{i}", ""), key=f"nuevo_doc_trans_{i}", on_change=sync_estado, args=(f"nuevo_doc_trans_{i}",), placeholder="Ej: SPI-98541")
                     
-                    st.markdown("##### 💵 Control y Ejecución Financiera")
-                    c_asig, c_cert, c_comp, c_dev = st.columns(4)
-                    with c_asig:
-                        val_asignado = st.number_input("Valor Asignado (Planificado):", value=monto_t, key=f"nuevo_monto_{i}", on_change=sync_estado, args=(f"nuevo_monto_{i}",), format="%.2f")
-                    with c_cert:
-                        val_certificado = st.number_input("Valor Certificado:", value=float(st.session_state.avances.get(f"nuevo_val_cert_{i}", 0.0)), key=f"nuevo_val_cert_{i}", on_change=sync_estado, args=(f"nuevo_val_cert_{i}",), format="%.2f")
-                    with c_comp:
-                        val_comprometido = st.number_input("Valor Comprometido:", value=float(st.session_state.avances.get(f"nuevo_val_comp_{i}", 0.0)), key=f"nuevo_val_comp_{i}", on_change=sync_estado, args=(f"nuevo_val_comp_{i}",), format="%.2f")
-                    with c_dev:
-                        val_devengado = st.number_input("Valor Devengado:", value=float(st.session_state.avances.get(f"nuevo_val_dev_{i}", 0.0)), key=f"nuevo_val_dev_{i}", on_change=sync_estado, args=(f"nuevo_val_dev_{i}",), format="%.2f")
-                    
-                    saldo_pendiente = max(0.0, val_asignado - val_devengado)
-                    st.info(f"📊 **Saldo Pendiente (Planificado - Devengado):** ${saldo_pendiente:,.2f}")
-                    
-                    st.markdown("##### 📑 Trazabilidad de Documentos Oficiales")
-                    c_doc1, c_doc2, c_doc3, c_doc4 = st.columns(4)
-                    with c_doc1:
-                        st.text_input("Nro. Certificación Presupuestaria:", value=st.session_state.avances.get(f"nuevo_doc_cert_{i}", ""), key=f"nuevo_doc_cert_{i}", on_change=sync_estado, args=(f"nuevo_doc_cert_{i}",), placeholder="Ej: CP-012")
-                    with c_doc2:
-                        st.text_input("Nro. Compromiso de Pago:", value=st.session_state.avances.get(f"nuevo_doc_comp_{i}", ""), key=f"nuevo_doc_comp_{i}", on_change=sync_estado, args=(f"nuevo_doc_comp_{i}",), placeholder="Ej: CP-548")
-                    with c_doc3:
-                        st.text_input("Nro. Orden de Gasto:", value=st.session_state.avances.get(f"nuevo_doc_gasto_{i}", ""), key=f"nuevo_doc_gasto_{i}", on_change=sync_estado, args=(f"nuevo_doc_gasto_{i}",), placeholder="Ej: OG-105")
-                    with c_doc4:
-                        st.text_input("Nro. Transferencia / CUR:", value=st.session_state.avances.get(f"nuevo_doc_trans_{i}", ""), key=f"nuevo_doc_trans_{i}", on_change=sync_estado, args=(f"nuevo_doc_trans_{i}",), placeholder="Ej: SPI-98541")
-                        
-                    st.markdown("##### 👥 Responsables del Proceso")
-                    cp, c1, c2, c3 = st.columns(4)
-                    with cp: st.text_input("Partida:", value=st.session_state.avances.get(f"nuevo_part_{i}", np['partida']), key=f"nuevo_part_{i}", on_change=sync_estado, args=(f"nuevo_part_{i}",))
-                    with c1: st.selectbox("Generar Necesidad:", opciones_personal, index=opciones_personal.index(v_gen) if v_gen in opciones_personal else 0, key=f"nuevo_eq_gen_{i}", on_change=sync_estado, args=(f"nuevo_eq_gen_{i}",))
-                    with c2: st.selectbox("Seguimiento FAE:", opciones_personal, index=opciones_personal.index(v_seg) if v_seg in opciones_personal else 0, key=f"nuevo_eq_seg_{i}", on_change=sync_estado, args=(f"nuevo_eq_seg_{i}",))
-                    with c3: st.selectbox("Administrador:", opciones_personal, index=opciones_personal.index(v_adm) if v_adm in opciones_personal else 0, key=f"nuevo_eq_adm_{i}", on_change=sync_estado, args=(f"nuevo_eq_adm_{i}",))
-                else:
-                    st.markdown(f"**Objeto de Contratación:** {st.session_state.avances.get('nuevo_name_' + str(i), np['objeto'])}")
-                    st.markdown(f"🗂️ **Partida Presupuestaria:** {st.session_state.avances.get('nuevo_part_' + str(i), np['partida'])} | 👥 **Administrador:** {v_adm}")
-                    
-                    st.markdown("---")
-                    st.markdown("##### 📊 Ejecución Presupuestaria Realizada")
-                    v_asig = float(st.session_state.avances.get(f"nuevo_monto_{i}", float(np['monto'])))
-                    v_cert = float(st.session_state.avances.get(f"nuevo_val_cert_{i}", 0.0))
-                    v_comp = float(st.session_state.avances.get(f"nuevo_val_comp_{i}", 0.0))
-                    v_dev = float(st.session_state.avances.get(f"nuevo_val_dev_{i}", 0.0))
-                    v_saldo = max(0.0, v_asig - v_dev)
-                    
-                    st.markdown(f"🔹 **Monto Asignado:** ${v_asig:,.2f} | 🔹 **Monto Certificado:** ${v_cert:,.2f} | 🔹 **Monto Comprometido:** ${v_comp:,.2f} | 🔹 **Monto Devengado:** ${v_dev:,.2f}")
-                    st.markdown(f"📉 **Saldo por Devengar:** ${v_saldo:,.2f}")
-                    
-                    st.markdown("##### 📑 Documentación de Control Técnico-Financiero")
-                    st.markdown(f"📜 **Certificación Presupuestaria:** {st.session_state.avances.get(f'nuevo_doc_cert_' + str(i), 'Pendiente')} | 📜 **Compromiso de Pago:** {st.session_state.avances.get(f'nuevo_doc_comp_' + str(i), 'Pendiente')}")
-                    st.markdown(f"📜 **Orden de Gasto:** {st.session_state.avances.get(f'nuevo_doc_gasto_' + str(i), 'Pendiente')} | 📜 **Comprobante de Transferencia/Pago:** {st.session_state.avances.get(f'nuevo_doc_trans_' + str(i), 'Pendiente')}")
+                st.markdown("##### 👥 Responsables del Proceso")
+                cp, c1, c2, c3 = st.columns(4)
+                with cp: st.text_input("Partida:", value=st.session_state.avances.get(f"nuevo_part_{i}", np['partida']), key=f"nuevo_part_{i}", on_change=sync_estado, args=(f"nuevo_part_{i}",))
+                with c1: st.selectbox("Generar Necesidad:", opciones_personal, index=opciones_personal.index(v_gen) if v_gen in opciones_personal else 0, key=f"nuevo_eq_gen_{i}", on_change=sync_estado, args=(f"nuevo_eq_gen_{i}",))
+                with c2: st.selectbox("Seguimiento FAE:", opciones_personal, index=opciones_personal.index(v_seg) if v_seg in opciones_personal else 0, key=f"nuevo_eq_seg_{i}", on_change=sync_estado, args=(f"nuevo_eq_seg_{i}",))
+                with c3: st.selectbox("Administrador:", opciones_personal, index=opciones_personal.index(v_adm) if v_adm in opciones_personal else 0, key=f"nuevo_eq_adm_{i}", on_change=sync_estado, args=(f"nuevo_eq_adm_{i}",))
             with t2:
                 st.select_slider("Fase actual:", options=puntos_fases, value=st.session_state.avances.get(f"nuevo_s_{i}", puntos_fases[0]), key=f"nuevo_s_{i}", on_change=sync_estado, args=(f"nuevo_s_{i}",))
                 st.text_input("📍 Ubicación actual / Nota de Seguimiento:", value=st.session_state.avances.get(f"nuevo_nota_{i}", "Sin novedad"), key=f"nuevo_nota_{i}", on_change=sync_estado, args=(f"nuevo_nota_{i}",))
@@ -639,8 +621,7 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
                     st.selectbox("Reasignar Departamento:", ["LOGÍSTICA", "OPERACIONES", "OTRAS DEPENDENCIAS"], index=["LOGÍSTICA", "OPERACIONES", "OTRAS DEPENDENCIAS"].index(depto_p), key=f"nuevo_depto_{i}", on_change=sync_estado, args=(f"nuevo_depto_{i}",))
             with t3:
                 link_guardado = st.session_state.avances.get(f"nuevo_lnk_nube_{i}", URL_BASE_FAE)
-                if st.session_state.user['rol'] in ['admin', 'supervisor']:
-                    st.text_input("URL Carpeta Específica:", value=link_guardado, key=f"nuevo_lnk_nube_{i}", on_change=sync_estado, args=(f"nuevo_lnk_nube_{i}",))
+                st.text_input("URL Carpeta Específica:", value=link_guardado, key=f"nuevo_lnk_nube_{i}", on_change=sync_estado, args=(f"nuevo_lnk_nube_{i}",))
                 st.link_button("📥 ABRIR EXPEDIENTE EN REPOSITORIO INSTITUCIONAL", url=link_guardado, use_container_width=True)
 
 # --- B. DESPLIEGUE DE PROCESOS DEL PAC EXCEL ---
@@ -666,7 +647,7 @@ if col_desc:
         if st.session_state.user['rol'] not in ['admin', 'supervisor'] and u_nom not in [v_gen, v_seg, v_adm]:
             continue
             
-        proc_text = str(r.get('PROCEDIMIENTO SUGERIDO (SON LOS PROCEDIMIENTOS DE CONTRATACIÓN)', '')).upper()
+        proc_text = str(r.get('PROCEDIMIENTO SUGERERO (SON LOS PROCEDIMIENTOS DE CONTRATACIÓN)', '')).upper()
         puntos = inf_s if "INFIMA" in proc_text else (ext_s if "EXTRANJERO" in proc_text or "PEX" in proc_text else px_s)
         es_activo = st.session_state.avances.get(f"estado_op_{r.name}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
         monto_tarjeta = float(st.session_state.avances.get(f"monto_{r.name}", float(r['COSTO TOTAL'])))
@@ -678,59 +659,40 @@ if col_desc:
             if es_activo:
                 t1, t2, t3 = st.tabs(["📋 Detalles y Equipo", "📍 Avance", "📂 Expediente"])
                 with t1:
-                    if st.session_state.user['rol'] in ['admin', 'supervisor']:
-                        st.text_input("Objeto de Contratación:", value=st.session_state.avances.get(f"name_{r.name}", str(r.get(col_desc, 'S/N'))), key=f"name_{r.name}", on_change=sync_estado, args=(f"name_{r.name}",))
+                    # Campos completamente liberados para modificación directa de los encargados
+                    st.text_input("Objeto de Contratación:", value=st.session_state.avances.get(f"name_{r.name}", str(r.get(col_desc, 'S/N'))), key=f"name_{r.name}", on_change=sync_estado, args=(f"name_{r.name}",))
+                    
+                    st.markdown("##### 💵 Control y Ejecución Financiera")
+                    c_asig, c_cert, c_comp, c_dev = st.columns(4)
+                    with c_asig:
+                        val_asignado = st.number_input("Valor Asignado (Planificado):", value=monto_tarjeta, key=f"monto_{r.name}", on_change=sync_estado, args=(f"monto_{r.name}",), format="%.2f")
+                    with c_cert:
+                        val_certificado = st.number_input("Valor Certificado:", value=float(st.session_state.avances.get(f"val_cert_{r.name}", 0.0)), key=f"val_cert_{r.name}", on_change=sync_estado, args=(f"val_cert_{r.name}",), format="%.2f")
+                    with c_comp:
+                        val_comprometido = st.number_input("Valor Comprometido:", value=float(st.session_state.avances.get(f"val_comp_{r.name}", 0.0)), key=f"val_comp_{r.name}", on_change=sync_estado, args=(f"val_comp_{r.name}",), format="%.2f")
+                    with c_dev:
+                        val_devengado = st.number_input("Valor Devengado:", value=float(st.session_state.avances.get(f"val_dev_{r.name}", 0.0)), key=f"val_dev_{r.name}", on_change=sync_estado, args=(f"val_dev_{r.name}",), format="%.2f")
+                    
+                    saldo_pendiente = max(0.0, val_asignado - val_devengado)
+                    st.info(f"📊 **Saldo Pendiente (Planificado - Devengado):** ${saldo_pendiente:,.2f}")
+                    
+                    st.markdown("##### 📑 Trazabilidad de Documentos Oficiales")
+                    c_doc1, c_doc2, c_doc3, c_doc4 = st.columns(4)
+                    with c_doc1:
+                        st.text_input("Nro. Certificación Presupuestaria:", value=st.session_state.avances.get(f"doc_cert_{r.name}", ""), key=f"doc_cert_{r.name}", on_change=sync_estado, args=(f"doc_cert_{r.name}",), placeholder="Ej: CP-012")
+                    with c_doc2:
+                        st.text_input("Nro. Compromiso de Pago:", value=st.session_state.avances.get(f"doc_comp_{r.name}", ""), key=f"doc_comp_{r.name}", on_change=sync_estado, args=(f"doc_comp_{r.name}",), placeholder="Ej: CP-548")
+                    with c_doc3:
+                        st.text_input("Nro. Orden de Gasto:", value=st.session_state.avances.get(f"doc_gasto_{r.name}", ""), key=f"doc_gasto_{r.name}", on_change=sync_estado, args=(f"doc_gasto_{r.name}",), placeholder="Ej: OG-105")
+                    with c_doc4:
+                        st.text_input("Nro. Transferencia / CUR:", value=st.session_state.avances.get(f"doc_trans_{r.name}", ""), key=f"doc_trans_{r.name}", on_change=sync_estado, args=(f"doc_trans_{r.name}",), placeholder="Ej: SPI-98541")
                         
-                        st.markdown("##### 💵 Control y Ejecución Financiera")
-                        c_asig, c_cert, c_comp, c_dev = st.columns(4)
-                        with c_asig:
-                            val_asignado = st.number_input("Valor Asignado (Planificado):", value=monto_tarjeta, key=f"monto_{r.name}", on_change=sync_estado, args=(f"monto_{r.name}",), format="%.2f")
-                        with c_cert:
-                            val_certificado = st.number_input("Valor Certificado:", value=float(st.session_state.avances.get(f"val_cert_{r.name}", 0.0)), key=f"val_cert_{r.name}", on_change=sync_estado, args=(f"val_cert_{r.name}",), format="%.2f")
-                        with c_comp:
-                            val_comprometido = st.number_input("Valor Comprometido:", value=float(st.session_state.avances.get(f"val_comp_{r.name}", 0.0)), key=f"val_comp_{r.name}", on_change=sync_estado, args=(f"val_comp_{r.name}",), format="%.2f")
-                        with c_dev:
-                            val_devengado = st.number_input("Valor Devengado:", value=float(st.session_state.avances.get(f"val_dev_{r.name}", 0.0)), key=f"val_dev_{r.name}", on_change=sync_estado, args=(f"val_dev_{r.name}",), format="%.2f")
-                        
-                        saldo_pendiente = max(0.0, val_asignado - val_devengado)
-                        st.info(f"📊 **Saldo Pendiente (Planificado - Devengado):** ${saldo_pendiente:,.2f}")
-                        
-                        st.markdown("##### 📑 Trazabilidad de Documentos Oficiales")
-                        c_doc1, c_doc2, c_doc3, c_doc4 = st.columns(4)
-                        with c_doc1:
-                            st.text_input("Nro. Certificación Presupuestaria:", value=st.session_state.avances.get(f"doc_cert_{r.name}", ""), key=f"doc_cert_{r.name}", on_change=sync_estado, args=(f"doc_cert_{r.name}",), placeholder="Ej: CP-012")
-                        with c_doc2:
-                            st.text_input("Nro. Compromiso de Pago:", value=st.session_state.avances.get(f"doc_comp_{r.name}", ""), key=f"doc_comp_{r.name}", on_change=sync_estado, args=(f"doc_comp_{r.name}",), placeholder="Ej: CP-548")
-                        with c_doc3:
-                            st.text_input("Nro. Orden de Gasto:", value=st.session_state.avances.get(f"doc_gasto_{r.name}", ""), key=f"doc_gasto_{r.name}", on_change=sync_estado, args=(f"doc_gasto_{r.name}",), placeholder="Ej: OG-105")
-                        with c_doc4:
-                            st.text_input("Nro. Transferencia / CUR:", value=st.session_state.avances.get(f"doc_trans_{r.name}", ""), key=f"doc_trans_{r.name}", on_change=sync_estado, args=(f"doc_trans_{r.name}",), placeholder="Ej: SPI-98541")
-                            
-                        st.markdown("##### 👥 Responsables del Proceso")
-                        cp, c1, c2, c3 = st.columns(4)
-                        with cp: st.text_input("Partida:", value=st.session_state.avances.get(f"part_{r.name}", "S/N"), key=f"part_{r.name}", on_change=sync_estado, args=(f"part_{r.name}",))
-                        with c1: st.selectbox("Generar Necesidad:", opciones_personal, index=opciones_personal.index(v_gen) if v_gen in opciones_personal else 0, key=f"eq_gen_{r.name}", on_change=sync_estado, args=(f"eq_gen_{r.name}",))
-                        with c2: st.selectbox("Seguimiento FAE:", opciones_personal, index=opciones_personal.index(v_seg) if v_seg in opciones_personal else 0, key=f"eq_seg_{r.name}", on_change=sync_estado, args=(f"eq_seg_{r.name}",))
-                        with c3: st.selectbox("Administrador:", opciones_personal, index=opciones_personal.index(v_adm) if v_adm in opciones_personal else 0, key=f"eq_adm_{r.name}", on_change=sync_estado, args=(f"eq_adm_{r.name}",))
-                    else:
-                        st.markdown(f"**Objeto de Contratación:** {st.session_state.avances.get('name_' + str(r.name), str(r.get(col_desc, 'S/N')))}")
-                        st.markdown(f"💰 **Monto Real:** ${monto_tarjeta:,.2f} | 🗂️ **Partida:** {st.session_state.avances.get('part_' + str(r.name), 'S/N')}")
-                        st.markdown(f"👥 **Administrador Asignado:** {v_adm}")
-                        
-                        st.markdown("---")
-                        st.markdown("##### 📊 Ejecución Presupuestaria Realizada")
-                        v_asig = float(st.session_state.avances.get(f"monto_{r.name}", float(r['COSTO TOTAL'])))
-                        v_cert = float(st.session_state.avances.get(f"val_cert_{r.name}", 0.0))
-                        v_comp = float(st.session_state.avances.get(f"val_comp_{r.name}", 0.0))
-                        v_dev = float(st.session_state.avances.get(f"val_dev_{r.name}", 0.0))
-                        v_saldo = max(0.0, v_asig - v_dev)
-                        
-                        st.markdown(f"🔹 **Monto Asignado:** ${v_asig:,.2f} | 🔹 **Monto Certificado:** ${v_cert:,.2f} | 🔹 **Monto Comprometido:** ${v_comp:,.2f} | 🔹 **Monto Devengado:** ${v_dev:,.2f}")
-                        st.markdown(f"📉 **Saldo por Devengar:** ${v_saldo:,.2f}")
-                        
-                        st.markdown("##### 📑 Documentación de Control Técnico-Financiero")
-                        st.markdown(f"📜 **Certificación Presupuestaria:** {st.session_state.avances.get(f'doc_cert_' + str(r.name), 'Pendiente')} | 📜 **Compromiso de Pago:** {st.session_state.avances.get(f'doc_comp_' + str(r.name), 'Pendiente')}")
-                        st.markdown(f"📜 **Orden de Gasto:** {st.session_state.avances.get(f'doc_gasto_' + str(r.name), 'Pendiente')} | 📜 **Comprobante de Transferencia/Pago:** {st.session_state.avances.get(f'doc_trans_' + str(r.name), 'Pendiente')}")
+                    st.markdown("##### 👥 Responsables del Proceso")
+                    cp, c1, c2, c3 = st.columns(4)
+                    with cp: st.text_input("Partida:", value=st.session_state.avances.get(f"part_{r.name}", "S/N"), key=f"part_{r.name}", on_change=sync_estado, args=(f"part_{r.name}",))
+                    with c1: st.selectbox("Generar Necesidad:", opciones_personal, index=opciones_personal.index(v_gen) if v_gen in opciones_personal else 0, key=f"eq_gen_{r.name}", on_change=sync_estado, args=(f"eq_gen_{r.name}",))
+                    with c2: st.selectbox("Seguimiento FAE:", opciones_personal, index=opciones_personal.index(v_seg) if v_seg in opciones_personal else 0, key=f"eq_seg_{r.name}", on_change=sync_estado, args=(f"eq_seg_{r.name}",))
+                    with c3: st.selectbox("Administrador:", opciones_personal, index=opciones_personal.index(v_adm) if v_adm in opciones_personal else 0, key=f"eq_adm_{r.name}", on_change=sync_estado, args=(f"eq_adm_{r.name}",))
                 with t2:
                     st.select_slider("Fase:", options=puntos, value=st.session_state.avances.get(f"s_{r.name}", puntos[0]), key=f"s_{r.name}", on_change=sync_estado, args=(f"s_{r.name}",))
                     st.text_input("📍 Ubicación actual / Nota de Seguimiento:", value=st.session_state.avances.get(f"nota_{r.name}", "Sin novedad"), key=f"nota_{r.name}", on_change=sync_estado, args=(f"nota_{r.name}",))
@@ -740,8 +702,7 @@ if col_desc:
                         st.selectbox("Transferir Departamento:", ["LOGÍSTICA", "OPERACIONES", "OTRAS DEPENDENCIAS"], index=["LOGÍSTICA", "OPERACIONES", "OTRAS DEPENDENCIAS"].index(depto_p), key=f"depto_{r.name}", on_change=sync_estado, args=(f"depto_{r.name}",))
                 with t3:
                     link_guardado = st.session_state.avances.get(f"lnk_nube_{r.name}", URL_BASE_FAE)
-                    if st.session_state.user['rol'] in ['admin', 'supervisor']:
-                        st.text_input("URL Carpeta Específica del Trámite:", value=link_guardado, key=f"lnk_nube_{r.name}", on_change=sync_estado, args=(f"lnk_nube_{r.name}",))
+                    st.text_input("URL Carpeta Específica del Trámite:", value=link_guardado, key=f"lnk_nube_{r.name}", on_change=sync_estado, args=(f"lnk_nube_{r.name}",))
                     st.link_button("📥 ABRIR EXPEDIENTE EN REPOSITORIO INSTITUCIONAL", url=link_guardado, use_container_width=True)
 
 # --- REPORTE PDF SEPARADO ---
