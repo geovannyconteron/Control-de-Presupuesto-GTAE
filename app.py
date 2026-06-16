@@ -1,6 +1,6 @@
 import sys
 import mock
-# Parche de compatibilidad visual
+# Parche de compatibilidad visual para evitar fallos de renderizado
 sys.modules["altair.vegalite.v4"] = mock.Mock()
 
 from datetime import datetime
@@ -66,7 +66,6 @@ if "procesos_nuevos" not in st.session_state.avances:
     st.session_state.avances["procesos_nuevos"] = []
 
 def proceso_esta_activo(idx, es_nuevo=False):
-    """Verifica si un proceso no ha sido cancelado o anulado por la jefatura."""
     clave = f"nuevo_estado_op_{idx}" if es_nuevo else f"estado_op_{idx}"
     return st.session_state.avances.get(clave, "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
 
@@ -107,25 +106,25 @@ for admin in lista_admins_reales:
             USR[username] = {"nom": admin, "pin": "2026", "rol": "user"}
 
 # ==============================================================================
-# --- 2. INYECCIÓN DE ESTILOS CSS INSTITUCIONALES (ALTA PRESENTACIÓN) ---
+# --- 2. INYECCIÓN DE ESTILOS CSS INSTITUCIONALES (REPARADOS Y ACOTADOS) ---
 # ==============================================================================
 st.markdown("""
     <style>
-    .stApp { background-color: #F4F6F9 !important; }
+    .stApp { background-color: #F8FAFC !important; }
     
-    /* Contenedor del Login Centrado */
-    .login-wrapper {
-        max-width: 420px;
-        margin: 80px auto;
+    /* Contenedor del Login Corregido sin afectar el monitor principal */
+    .login-wrapper-gtae {
+        max-width: 440px;
+        margin: 100px auto !important;
         background-color: #0B2545;
-        padding: 35px;
+        padding: 40px;
         border-radius: 12px;
-        box-shadow: 0px 10px 25px rgba(0,0,0,0.25);
+        box-shadow: 0px 12px 30px rgba(0,0,0,0.3);
         text-align: center;
     }
-    .login-wrapper h2 { color: #FFFFFF !important; font-weight: 800; margin-bottom: 25px; font-size: 24px; }
+    .login-wrapper-gtae h2 { color: #FFFFFF !important; font-weight: 800; margin-bottom: 25px; font-size: 24px; }
     
-    /* Forzar textos blancos legibles en la barra lateral */
+    /* Panel lateral izquierdo */
     [data-testid="stSidebar"] { background-color: #0B2545 !important; min-width: 320px !important; }
     [data-testid="stSidebar"] p, 
     [data-testid="stSidebar"] span, 
@@ -136,11 +135,9 @@ st.markdown("""
         font-size: 15px !important;
     }
     
-    /* Visibilidad para desplegables internos */
     div[data-baseweb="select"] li span, div[data-baseweb="select"] div { color: #1E293B !important; }
     
-    /* Botones del Sistema */
-    [data-testid="stSidebar"] button, .login-wrapper button {
+    [data-testid="stSidebar"] button, .login-wrapper-gtae button {
         background: #134074 !important;
         color: #FFFFFF !important; 
         border: 1px solid #FFFFFF !important;
@@ -150,15 +147,15 @@ st.markdown("""
         height: 42px; 
         transition: all 0.3s ease;
     }
-    [data-testid="stSidebar"] button:hover, .login-wrapper button:hover { background: #1E40AF !important; box-shadow: 0px 4px 12px rgba(255,255,255,0.2); }
+    [data-testid="stSidebar"] button:hover, .login-wrapper-gtae button:hover { background: #1E40AF !important; box-shadow: 0px 4px 12px rgba(255,255,255,0.2); }
     
-    /* Tarjetas del Monitor Central - Reparación Completa */
-    div.metric-container-premium {
+    /* Tarjetas del panel central */
+    div.metric-premium-card {
         background-color: #FFFFFF !important; 
         border-left: 6px solid #134074 !important; 
         padding: 20px !important;
         border-radius: 8px !important; 
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.08) !important; 
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.06) !important; 
         margin-bottom: 20px !important;
     }
     
@@ -166,22 +163,16 @@ st.markdown("""
         background-color: #FFFFFF !important;
         border: 1px solid #E2E8F0 !important;
         border-radius: 8px !important;
-        box-shadow: 0px 3px 10px rgba(0,0,0,0.03) !important;
+        box-shadow: 0px 3px 10px rgba(0,0,0,0.02) !important;
         margin-bottom: 12px !important;
     }
     
-    /* Encabezados */
-    .main-title {
+    .main-title-gtae {
         color: #0B2545 !important;
-        font-size: 32px !important;
+        font-size: 30px !important;
         font-weight: 800 !important;
         margin-bottom: 5px !important;
-        display: flex;
-        align-items: center;
-        gap: 12px;
     }
-    
-    h1, h2, h3 { color: #0B2545 !important; font-weight: 800; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -190,19 +181,19 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 if st.session_state.user is None:
-    st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
+    st.markdown('<div class="login-wrapper-gtae">', unsafe_allow_html=True)
     if os.path.exists(LOGO): st.image(LOGO, width=110)
     st.markdown("<h2>Acceso Sistema GTAE</h2>", unsafe_allow_html=True)
     
-    u = st.text_input("Usuario:", key="input_user_login").strip().lower()
-    p = st.text_input("Contraseña:", type="password", key="input_pin_login").strip()
+    u = st.text_input("Usuario Corporativo:", key="input_user_login").strip().lower()
+    p = st.text_input("PIN Militar de Seguridad:", type="password", key="input_pin_login").strip()
     
     if st.button("Ingresar al Monitor Operativo", key="button_submit_login"):
         if u in USR and USR[u]["pin"] == p:
             st.session_state.user = USR[u]
             st.rerun()
         else:
-            st.error("Credenciales incorrectas.")
+            st.error("Credenciales militares incorrectas.")
             
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
@@ -212,7 +203,7 @@ if st.session_state.user is None:
 # ==============================================================================
 @st.cache_data
 def load_data():
-    px = ["1. Certificación Pertenencia/Existencia (Anexo A/B)", "2. Informe Borrador y Control Previo", "3. Subsanación de observaciones", "4. Informe de Necesidad RESERVADO al Jefe CMP", "5. Estudio de Mercado (Min. 3 proformas - Anexo I)", "6. Suscripción de TDRs y parámetros de experiencia", "7. Solicitud de listado de oferentes a DIRCOP", "8. Autorización de Invitación por Jefe CMP", "9. Invitación por Correo Institucional (Anexo J)", "10. Entrega de TDRs contra manifestación de interés", "11. Informe de Inteligencia Protectiva (Oferentes)", "12. Evaluación de Comisión (Anexo N)", "13. Elaboración de Formulario de Requerimiento (Anexo P)", "14. Certificado de Cumplimiento y Presupuestaria", "15. Resolución de Inicio y Aprobación de Pliegos", "16. Adjudicación y Suscripción del Contrato"]
+    px = ["1. Certificación Pertenencia/Existencia (Anexo A/B)", "2. Informe Borrador y Control Previo", "3. Subsanación de observaciones", "4. Informe de Necesidad RESERVADO al Jefe CMP", "5. Estudio de Mercado (Min. 3 proformas - Anexo I)", "6. Suscripción de TDRs y parámetros de experiencia", "7. Solicitud de listado de oferentes a DIRCOP", "8. Autorización de Invitación por Jefe CMP", "9. Invitación por Correo Institucional (Anexo J)", "10. Entrega de TDRs contra manifestación de interest", "11. Informe de Inteligencia Protectiva (Oferentes)", "12. Evaluación de Comisión (Anexo N)", "13. Elaboración de Formulario de Requerimiento (Anexo P)", "14. Certificado de Cumplimiento y Presupuestaria", "15. Resolución de Inicio y Aprobación de Pliegos", "16. Adjudicación y Suscripción del Contrato"]
     inf = ["1. Certificación Pertenencia/Existencia", "2. Control Previo e Informe Borrador (DIRCOP)", "3. Informe de Necesidad RESERVADO al CAF", "4. Autorización de la Coordinación Adm. Financiera", "5. Invitación RESERVADA (RUC/CPC habilitado)", "6. Recepción de propuestas (Reglas de Participación)", "7. Informe de Inteligencia Protectiva", "8. Razón de Proformas (DIRCOP - Anexo S)", "9. Selección de Proveedor y Det. Presupuesto (Anexo Q)", "10. Formulario de Cumplimiento Etapa Preparatoria (Anexo T)", "11. Obtención de Certificación Presupuestaria", "12. Declaración Juramentada del Oferente (Anexo U)", "13. Elaboración de Orden de Compra sumillada", "14. Legalización por el CAF y Execution"]
     ext = ["1. Certificación Pertenencia/Existencia de bienes", "2. Revisión técnica/financiera del Informe Borrador", "3. Informe de Necesidad RESERVADO (Exclusividad)", "4. Estudio de Mercado con proformas vigentes", "5. Búsqueda y listado de proveedores internacionales", "6. Invitación formal por Mail Institucional (Anexo J)", "7. Evaluación Comisión Selección (Anexo O)", "8. Formulario de Requerimiento (Anexo P)", "9. Certificado de Cumplimiento y Presupuestaria", "10. Solicitud de inicio al Jefe CMP", "11. Resolución Fundamentada de Inicio", "12. Suscripción de Orden de Compra/Servicio", "13. Ejecución (Prácticas Internacionales)"]
     
@@ -242,32 +233,96 @@ cuat_mapeo = {"C1": "1er Cuatrimestre", "C2": "2do Cuatrimestre", "C3": "3er Cua
 cuat_filtro_texto = cuat_mapeo[cuat_sel]
 
 # ==============================================================================
-# --- 4. GENERADOR DE REPORTES PDF OFICIAL ---
+# --- 4. ENGINE DE GENERACIÓN DE REPORTE PDF COMPLETO (REPARADO) ---
 # ==============================================================================
-def generar_pdf_oficial(inspector, df, cuat, estados, v_e_a, v_t_a, depto):
+def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto):
     pdf = FPDF(orientation='L', unit='mm', format='A4') 
     pdf.add_page()
-    if os.path.exists(LOGO): pdf.image(LOGO, 10, 8, 25)
+    
+    if os.path.exists(LOGO): 
+        pdf.image(LOGO, 12, 10, 24)
     
     fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M")
     pdf.set_font("Helvetica", '', 8)
     pdf.cell(0, 5, f"Fecha de reporte: {fecha_actual}", ln=True, align='R')
     
-    pdf.set_font("Helvetica", 'B', 14); pdf.set_text_color(0, 51, 102)
-    pdf.cell(0, 7, 'FUERZA AEREA ECUATORIANA', ln=True, align='C')
-    pdf.set_font("Helvetica", 'B', 11)
-    pdf.cell(0, 7, 'GRUPO DE TRANSPORTE AEREO ESPECIAL (GTAE)', ln=True, align='C')
-    pdf.cell(0, 7, f'DEPARTAMENTO DE {depto}', ln=True, align='C')
-    pdf.ln(10)
+    pdf.set_font("Helvetica", 'B', 13); pdf.set_text_color(11, 37, 69)
+    pdf.cell(0, 6, 'FUERZA AEREA ECUATORIANA', ln=True, align='C')
+    pdf.set_font("Helvetica", 'B', 10)
+    pdf.cell(0, 5, 'GRUPO DE TRANSPORTE AEREO ESPECIAL (GTAE)', ln=True, align='C')
+    pdf.cell(0, 5, f'DEPARTAMENTO DE {depto}', ln=True, align='C')
+    pdf.ln(6)
     
-    pdf.set_fill_color(0, 51, 102); pdf.set_text_color(255, 255, 255); pdf.set_font("Helvetica", 'B', 12)
-    pdf.cell(0, 10, f"REPORTE TECNICO DE EJECUCION PRESUPUESTARIA - {cuat}", 0, 1, 'C', True)
+    pdf.set_fill_color(11, 37, 69); pdf.set_text_color(255, 255, 255); pdf.set_font("Helvetica", 'B', 11)
+    pdf.cell(0, 8, f"REPORTE TECNICO DE EJECUCION PRESUPUESTARIA - {cuat.upper()}", 0, 1, 'C', True)
+    pdf.ln(4)
+    
+    # Tabla de Resumen Financiero
+    pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", 'B', 9)
+    pdf.cell(0, 6, "1. CONSOLIDADO FINANCIERO DEL PERIODO:", ln=True)
+    pdf.set_font("Helvetica", '', 9); pdf.set_fill_color(245, 247, 250)
+    pdf.cell(135, 7, f" Presupuesto Planificado Cuatrimestre: ${v_t_a:,.2f}", 1, 0, 'L', True)
+    pdf.cell(142, 7, f" Devengado Real Cuatrimestre: ${v_e_a:,.2f}", 1, 1, 'L', True)
     pdf.ln(5)
     
+    # Tabla Detallada de Procesos Activos
+    pdf.set_font("Helvetica", 'B', 9)
+    pdf.cell(0, 6, "2. DETALLE DE PROCESOS EN EJECUCION:", ln=True)
+    
+    # Cabecera de la tabla
+    pdf.set_fill_color(20, 50, 90); pdf.set_text_color(255, 255, 255); pdf.set_font("Helvetica", 'B', 8)
+    pdf.cell(145, 6, "Objeto de Contratacion", 1, 0, 'C', True)
+    pdf.cell(32, 6, "Partida", 1, 0, 'C', True)
+    pdf.cell(35, 6, "Monto Real", 1, 0, 'C', True)
+    pdf.cell(65, 6, "Fase Actual", 1, 1, 'C', True)
+    
+    pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", '', 7)
+    
+    # Recorrer e incluir los ítems reales filtrados
+    col_desc_pdf = next((c for c in df_items.columns if "DETALLE" in c.upper()), None)
+    
+    # A. Datos de procesos del PAC Excel
+    if col_desc_pdf:
+        for ix, r in df_items.iterrows():
+            item_depto = avances.get(f"depto_{r.name}", "LOGÍSTICA")
+            item_cuat = avances.get(f"cuat_{r.name}", "1er Cuatrimestre")
+            
+            # Filtro estricto igual al del monitor central
+            if item_depto == depto and item_cuat == cuat:
+                clave_activa = avances.get(f"estado_op_{r.name}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
+                if clave_activa:
+                    obj_t = str(avances.get(f"name_{r.name}", r[col_desc_pdf]))[:90]
+                    part_t = str(avances.get(f"part_{r.name}", "S/N"))
+                    monto_t = float(avances.get(f"monto_{r.name}", float(r['COSTO TOTAL'])))
+                    fase_t = str(avances.get(f"s_{r.name}", "Pendiente"))[:38]
+                    
+                    pdf.cell(145, 6, f" {obj_t}", 1, 0, 'L')
+                    pdf.cell(32, 6, f" {part_t}", 1, 0, 'C')
+                    pdf.cell(35, 6, f" ${monto_t:,.2f}", 1, 0, 'R')
+                    pdf.cell(65, 6, f" {fase_t}", 1, 1, 'L')
+
+    # B. Datos de procesos Manuales (Extra-PAC)
+    for i, np in enumerate(avances.get("procesos_nuevos", [])):
+        m_depto = avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
+        m_cuat = avances.get(f"nuevo_cuat_{i}", np['cuatrimestre'])
+        
+        if m_depto == depto and m_cuat == cuat:
+            if avances.get(f"nuevo_estado_op_{i}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]:
+                obj_m = str(avances.get(f"nuevo_name_{i}", np['objeto']))[:90]
+                part_m = str(avances.get(f"nuevo_part_{i}", np['partida']))
+                monto_m = float(avances.get(f"nuevo_monto_{i}", float(np['monto'])))
+                fase_m = str(avances.get(f"nuevo_s_{i}", "1. Certificación Pertenencia/Existencia"))[:38]
+                
+                pdf.cell(145, 6, f" [MANUAL] {obj_m}", 1, 0, 'L')
+                pdf.cell(32, 6, f" {part_m}", 1, 0, 'C')
+                pdf.cell(35, 6, f" ${monto_m:,.2f}", 1, 0, 'R')
+                pdf.cell(65, 6, f" {fase_m}", 1, 1, 'L')
+
+    pdf.ln(12)
     pdf.set_font("Helvetica", 'B', 8)
     pdf.cell(135, 5, "ELABORADO POR:", 0, 0, 'L')
     pdf.cell(142, 5, "REVISADO Y APROBADO POR:", 0, 1, 'L')
-    pdf.ln(12)
+    pdf.ln(10)
     pdf.cell(135, 4, "____________________________________", 0, 0, 'L')
     pdf.cell(142, 4, "____________________________________", 0, 1, 'L')
     pdf.cell(135, 4, f"Econ. {inspector}", 0, 0, 'L')
@@ -302,20 +357,20 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
             v_e_a += monto_p
 
 # ==============================================================================
-# --- 5. PANEL CENTRAL GRÁFICO (REDISEÑO PREMIUM) ---
+# --- 5. PANEL CENTRAL GRÁFICO (REDISEÑO DE ALTA PRESENTACIÓN) ---
 # ==============================================================================
-st.markdown('<div class="main-title">🛫 Monitor Operativo de Control Presupuestario GTAE</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title-gtae">🛫 Monitor Operativo de Control Presupuestario GTAE</div>', unsafe_allow_html=True)
 st.markdown(f"Módulo de gestión técnica — Departamento: **{dep_sel}** — Periodo: **{cuat_filtro_texto}**")
 st.markdown("---")
 
 col_met, col_pie = st.columns([1, 1])
 with col_met:
-    st.markdown('<div class="metric-container-premium">', unsafe_allow_html=True)
+    st.markdown('<div class="metric-premium-card">', unsafe_allow_html=True)
     st.metric(f"Presupuesto Planificado {dep_sel.capitalize()}", f"${v_t_a:,.2f}")
     st.markdown('</div>', unsafe_allow_html=True)
     
-    st.markdown('<div class="metric-container-premium">', unsafe_allow_html=True)
-    st.metric("Monto Real Devengado Anual", f"${v_e_a:,.2f}", delta=f"{((v_e_a/v_t_a)*100) if v_t_a > 0 else 0:.2f}% de Execution")
+    st.markdown('<div class="metric-premium-card">', unsafe_allow_html=True)
+    st.metric("Monto Real Devengado Anual", f"${v_e_a:,.2f}", delta=f"{((v_e_a/v_t_a)*100) if v_t_a > 0 else 0:.2f}% de Ejecución")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col_pie:
@@ -477,7 +532,7 @@ if col_desc:
 
 # --- REPORTE PDF SEPARADO ---
 st.sidebar.markdown("---")
-pdf_bytes = generar_pdf_oficial(st.session_state.user['nom'], df_visualizacion, cuat_sel, st.session_state.avances, v_e_a, v_t_a, dep_sel)
+pdf_bytes = generar_pdf_oficial(st.session_state.user['nom'], df_visualizacion, cuat_filtro_texto, st.session_state.avances, v_e_a, v_t_a, dep_sel)
 st.sidebar.download_button(label="📥 DESCARGAR REPORTE PDF", data=pdf_bytes, file_name=f"Reporte_{dep_sel}_{cuat_sel}.pdf", mime="application/pdf", use_container_width=True)
 
 if st.sidebar.button("Cerrar Sesión Activa"):
