@@ -278,9 +278,9 @@ cuat_mapeo = {"C1": "1er Cuatrimestre", "C2": "2do Cuatrimestre", "C3": "3er Cua
 cuat_filtro_texto = cuat_mapeo[cuat_sel]
 
 # ==============================================================================
-# --- 4. ENGINE DE GENERACIÓN DE REPORTE PDF CON FILTRADO DE SEGURIDAD ---
+# --- 4. ENGINE DE GENERACIÓN DE REPORTE PDF LIBERADO ---
 # ==============================================================================
-def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto, rol_usuario, nombre_usuario):
+def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto):
     pdf = FPDF(orientation='L', unit='mm', format='A4') 
     pdf.add_page()
     
@@ -302,7 +302,7 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto,
     pdf.ln(4)
     
     pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", 'B', 9)
-    pdf.cell(0, 6, "1. CONSOLIDADO FINANCIERO DEL PERIOSO:", ln=True)
+    pdf.cell(0, 6, "1. CONSOLIDADO FINANCIERO DEL PERIODO:", ln=True)
     pdf.set_font("Helvetica", '', 9); pdf.set_fill_color(245, 247, 250)
     pdf.cell(135, 7, f" Presupuesto Planificado Cuatrimestre: ${v_t_a:,.2f}", 1, 0, 'L', True)
     pdf.cell(142, 7, f" Devengado Real Cuatrimestre: ${v_e_a:,.2f}", 1, 1, 'L', True)
@@ -326,18 +326,10 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto,
             item_depto = avances.get(f"depto_{r.name}", "LOGÍSTICA")
             item_cuat = avances.get(f"cuat_{r.name}", "1er Cuatrimestre")
             
-            v_gen = avances.get(f"eq_gen_{r.name}", "SIN ASIGNAR").upper().strip()
-            v_seg = avances.get(f"eq_seg_{r.name}", "SIN ASIGNAR").upper().strip()
-            v_adm = avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR").upper().strip()
-            u_nom = nombre_usuario.upper().strip()
-            
-            if rol_usuario not in ['admin', 'supervisor'] and u_nom not in [v_gen, v_seg, v_adm]:
-                continue
-                
             if item_depto == depto and item_cuat == cuat:
                 if avances.get(f"estado_op_{r.name}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]:
                     obj_t = str(avances.get(f"name_{r.name}", r[col_desc_pdf]))[:60]
-                    adm_t = str(v_adm)
+                    adm_t = str(avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR")).upper()
                     monto_t = float(avances.get(f"monto_{r.name}", float(r['COSTO TOTAL'])))
                     fase_t = str(avances.get(f"s_{r.name}", "Pendiente"))[:35]
                     nota_t = str(avances.get(f"nota_{r.name}", "Sin novedad"))[:40]
@@ -352,18 +344,10 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto,
         m_depto = avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
         m_cuat = avances.get(f"nuevo_cuat_{i}", np['cuatrimestre'])
         
-        v_gen = avances.get(f"nuevo_eq_gen_{i}", "SIN ASIGNAR").upper().strip()
-        v_seg = avances.get(f"nuevo_eq_seg_{i}", "SIN ASIGNAR").upper().strip()
-        v_adm = avances.get(f"nuevo_eq_adm_{i}", "SIN ASIGNAR").upper().strip()
-        u_nom = nombre_usuario.upper().strip()
-        
-        if rol_usuario not in ['admin', 'supervisor'] and u_nom not in [v_gen, v_seg, v_adm]:
-            continue
-            
         if m_depto == depto and m_cuat == cuat:
             if avances.get(f"nuevo_estado_op_{i}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]:
                 obj_m = str(avances.get(f"nuevo_name_{i}", np['objeto']))[:60]
-                adm_m = str(v_adm)
+                adm_m = str(avances.get(f"nuevo_eq_adm_{i}", "SIN ASIGNAR")).upper()
                 monto_m = float(avances.get(f"nuevo_monto_{i}", float(np['monto'])))
                 fase_m = str(avances.get(f"nuevo_s_{i}", "1. Certificación Pertenencia/Existencia"))[:35]
                 nota_m = str(avances.get(f"nuevo_nota_{i}", "Sin novedad"))[:40]
@@ -387,7 +371,7 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto,
     return pdf.output(dest='S').encode('latin1', errors='ignore')
 
 # ==============================================================================
-# --- 5. MOTOR MATEMÁTICO ADAPTADO AL FILTRO DE SEGURIDAD POR OPERADOR ---
+# --- 5. MOTOR MATEMÁTICO UNIVERSAL ---
 # ==============================================================================
 df_visualizacion = df_pac.copy()
 
@@ -400,14 +384,6 @@ for idx, row in df_visualizacion.iterrows():
     monto_p = float(st.session_state.avances.get(f"monto_{row.name}", float(row['COSTO TOTAL'])))
     avance_p = st.session_state.avances.get(f"s_{row.name}", "Pendiente")
     
-    v_gen = st.session_state.avances.get(f"eq_gen_{row.name}", "SIN ASIGNAR").upper().strip()
-    v_seg = st.session_state.avances.get(f"eq_seg_{row.name}", "SIN ASIGNAR").upper().strip()
-    v_adm = st.session_state.avances.get(f"eq_adm_{row.name}", "SIN ASIGNAR").upper().strip()
-    u_nom = st.session_state.user['nom'].upper().strip()
-    
-    if st.session_state.user['rol'] not in ['admin', 'supervisor'] and u_nom not in [v_gen, v_seg, v_adm]:
-        continue
-        
     if depto_p == dep_sel and proceso_esta_activo(row.name, es_nuevo=False):
         v_t_a += monto_p
         if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
@@ -424,14 +400,6 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     monto_p = float(st.session_state.avances.get(f"nuevo_monto_{i}", float(np['monto'])))
     avance_p = st.session_state.avances.get(f"nuevo_s_{i}", "1. Certificación Pertenencia/Existencia")
     
-    v_gen = st.session_state.avances.get(f"nuevo_eq_gen_{i}", "SIN ASIGNAR").upper().strip()
-    v_seg = st.session_state.avances.get(f"nuevo_eq_seg_{i}", "SIN ASIGNAR").upper().strip()
-    v_adm = st.session_state.avances.get(f"nuevo_eq_adm_{i}", "SIN ASIGNAR").upper().strip()
-    u_nom = st.session_state.user['nom'].upper().strip()
-    
-    if st.session_state.user['rol'] not in ['admin', 'supervisor'] and u_nom not in [v_gen, v_seg, v_adm]:
-        continue
-        
     if depto_p == dep_sel and proceso_esta_activo(i, es_nuevo=True):
         v_t_a += monto_p
         if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
@@ -491,7 +459,7 @@ with tab_anual:
         else:
             st.info(f"No cuenta con fondos asignados bajo su responsabilidad para este año.")
 
-# Panel de Administración Integrado (Solo Administradores/Supervisores manejan altas e inyección inicial)
+# Panel de Administración Integrado (Solo Administradores/Supervisores manejan altas)
 if st.session_state.user['rol'] in ['admin', 'supervisor']:
     with st.expander("🛠️ Panel de Administración (Registrar Personal y Nuevos Procesos Extra-PAC)"):
         t_pers, t_proc = st.tabs(["👥 Gestión de Personal", "➕ Incluir Nuevo Proceso Manual"])
@@ -535,7 +503,7 @@ if st.session_state.user['rol'] in ['admin', 'supervisor']:
                         st.rerun()
 
 # ==============================================================================
-# --- 7. DISPLAY DE FILTRADO Y EXPANDERS INTERACTIVOS (EDICIÓN PARA ENCARGADOS) ---
+# --- 7. DISPLAY TOTALMENTE LIBERADO CON LOGICA DE BUSQUEDA TOLERANTE ---
 # ==============================================================================
 st.markdown("---")
 st.markdown("### 🔍 Buscador de Procesos en Ejecución")
@@ -554,19 +522,19 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     cuat_p = st.session_state.avances.get(f"nuevo_cuat_{i}", np['cuatrimestre'])
     
     if depto_p != dep_sel: continue
+    
+    # Lógica Indulgente: Si el usuario busca algo, no filtramos por cuatrimestre para asegurar que aparezca
     if query.strip():
         if query.lower() not in np['objeto'].lower(): continue
     else:
-        if cuat_p != cuat_filtro_texto: continue
+        # Si no está buscando, homologamos cadenas para evitar fallos de formato oculto
+        if cuat_p.strip().upper()[:2] != cuat_filtro_texto.strip().upper()[:2]:
+            continue
         
     v_gen = st.session_state.avances.get(f'nuevo_eq_gen_{i}', "SIN ASIGNAR").upper().strip()
     v_seg = st.session_state.avances.get(f'nuevo_eq_seg_{i}', "SIN ASIGNAR").upper().strip()
     v_adm = st.session_state.avances.get(f'nuevo_eq_adm_{i}', "SIN ASIGNAR").upper().strip()
-    u_nom = st.session_state.user['nom'].upper().strip()
     
-    if st.session_state.user['rol'] not in ['admin', 'supervisor'] and u_nom not in [v_gen, v_seg, v_adm]:
-        continue
-        
     es_activo = st.session_state.avances.get(f"nuevo_estado_op_{i}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
     monto_t = float(st.session_state.avances.get(f"nuevo_monto_{i}", float(np['monto'])))
     puntos_fases = inf_s if "INFIMA" in np['tipo'] else (ext_s if "EXTRANJERO" in np['tipo'] else px_s)
@@ -578,7 +546,6 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
         if es_activo:
             t1, t2, t3 = st.tabs(["📋 Detalles y Equipo", "📍 Avance", "📂 Expediente"])
             with t1:
-                # Modificable por cualquier encargado con acceso al proceso
                 st.text_input("Objeto:", value=st.session_state.avances.get(f"nuevo_name_{i}", np['objeto']), key=f"nuevo_name_{i}", on_change=sync_estado, args=(f"nuevo_name_{i}",))
                 
                 st.markdown("##### 💵 Control y Ejecución Financiera")
@@ -628,29 +595,27 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
 col_desc = next((c for c in df_visualizacion.columns if "DETALLE" in c.upper()), None)
 if col_desc:
     df_f = df_visualizacion.copy()
-    if query.strip():
-        df_f = df_f[df_f[col_desc].str.contains(query, case=False, na=False)]
-
+    
     for ix, r in df_f.iterrows():
         depto_p = st.session_state.avances.get(f"depto_{r.name}", "LOGÍSTICA")
         cuat_p = st.session_state.avances.get(f"cuat_{r.name}", "1er Cuatrimestre")
         
         if depto_p != dep_sel: continue
-        if not query.strip():
-            if cuat_p != cuat_filtro_texto: continue
-            
-        v_gen = st.session_state.avances.get(f"eq_gen_{r.name}", "SIN ASIGNAR").upper().strip()
-        v_seg = st.session_state.avances.get(f"eq_seg_{r.name}", "SIN ASIGNAR").upper().strip()
-        v_adm = st.session_state.avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR").upper().strip()
-        u_nom = st.session_state.user['nom'].upper().strip()
         
-        if st.session_state.user['rol'] not in ['admin', 'supervisor'] and u_nom not in [v_gen, v_seg, v_adm]:
-            continue
+        if query.strip():
+            if query.lower() not in str(r[col_desc]).lower(): continue
+        else:
+            if cuat_p.strip().upper()[:2] != cuat_filtro_texto.strip().upper()[:2]:
+                continue
             
         proc_text = str(r.get('PROCEDIMIENTO SUGERERO (SON LOS PROCEDIMIENTOS DE CONTRATACIÓN)', '')).upper()
         puntos = inf_s if "INFIMA" in proc_text else (ext_s if "EXTRANJERO" in proc_text or "PEX" in proc_text else px_s)
         es_activo = st.session_state.avances.get(f"estado_op_{r.name}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
         monto_tarjeta = float(st.session_state.avances.get(f"monto_{r.name}", float(r['COSTO TOTAL'])))
+        
+        v_gen = st.session_state.avances.get(f"eq_gen_{r.name}", "SIN ASIGNAR").upper().strip()
+        v_seg = st.session_state.avances.get(f"eq_seg_{r.name}", "SIN ASIGNAR").upper().strip()
+        v_adm = st.session_state.avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR").upper().strip()
         
         titulo_tarjeta = f"🔹 {r[col_desc]} - ${monto_tarjeta:,.2f} ({cuat_p})" if es_activo else f"❌ [ANULADO] {r[col_desc]}"
         with st.expander(titulo_tarjeta):
@@ -659,7 +624,6 @@ if col_desc:
             if es_activo:
                 t1, t2, t3 = st.tabs(["📋 Detalles y Equipo", "📍 Avance", "📂 Expediente"])
                 with t1:
-                    # Campos completamente liberados para modificación directa de los encargados
                     st.text_input("Objeto de Contratación:", value=st.session_state.avances.get(f"name_{r.name}", str(r.get(col_desc, 'S/N'))), key=f"name_{r.name}", on_change=sync_estado, args=(f"name_{r.name}",))
                     
                     st.markdown("##### 💵 Control y Ejecución Financiera")
@@ -705,9 +669,9 @@ if col_desc:
                     st.text_input("URL Carpeta Específica del Trámite:", value=link_guardado, key=f"lnk_nube_{r.name}", on_change=sync_estado, args=(f"lnk_nube_{r.name}",))
                     st.link_button("📥 ABRIR EXPEDIENTE EN REPOSITORIO INSTITUCIONAL", url=link_guardado, use_container_width=True)
 
-# --- REPORTE PDF SEPARADO ---
+# --- REPORTE PDF ---
 st.sidebar.markdown("---")
-pdf_bytes = generar_pdf_oficial(st.session_state.user['nom'], df_visualizacion, cuat_filtro_texto, st.session_state.avances, v_e_c, v_t_c, dep_sel, st.session_state.user['rol'], st.session_state.user['nom'])
+pdf_bytes = generar_pdf_oficial(st.session_state.user['nom'], df_visualizacion, cuat_filtro_texto, st.session_state.avances, v_e_c, v_t_c, dep_sel)
 st.sidebar.download_button(label="📥 DESCARGAR REPORTE PDF", data=pdf_bytes, file_name=f"Reporte_{dep_sel}_{cuat_sel}.pdf", mime="application/pdf", use_container_width=True)
 
 if st.sidebar.button("Cerrar Sesión Activa"):
