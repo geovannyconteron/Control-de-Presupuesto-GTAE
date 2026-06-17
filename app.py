@@ -581,13 +581,10 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     
     titulo = f"🔸 [MANUAL] {st.session_state.avances['procesos_nuevos'][i].get('objeto', np['objeto'])} - ${monto_t:,.2f} ({cuat_p})" if es_activo else f"❌ [ANULADO] {np['objeto']}"
     with st.expander(titulo):
-    if st.session_state.user['rol'] in ['admin', 'supervisor']:
+        if st.session_state.user['rol'] in ['admin', 'supervisor']:
         if st.button("🗑️ BORRAR PROCESO MANUAL", key=f"btn_del_man_{i}"):
-            # 1. Sacamos el proceso de la lista de avances usando su posición real
             st.session_state.avances["procesos_nuevos"].pop(i)
-            # 2. Asentamos el cambio inmediatamente en el archivo JSON
             guardar_base_datos(st.session_state.avances)
-            # 3. Informamos con éxito y forzamos un reinicio limpio antes de que el bucle falle
             st.success("Proceso eliminado correctamente de la planificación.")
             st.rerun()
             
