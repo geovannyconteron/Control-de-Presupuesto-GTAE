@@ -400,15 +400,21 @@ for idx, row in df_visualizacion.iterrows():
         if u_nom_logueado not in [v_gen, v_seg, v_adm]: 
             continue
             
-    if depto_p == dep_sel and process_esta_activo(row.name, es_nuevo=False):
+    if depto_p == dep_sel and st.session_state.avances.get(f"estado_op_{row.name}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]:
         v_t_a += monto_p
-        if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper(): 
-            v_e_a += monto_p
+        
+        # Leer el valor real digitado en la casilla de devengado
+        val_dev_guardado = float(st.session_state.avances.get(f"val_dev_{row.name}", 0.0))
+        
+        # Se considera devengado si tiene valor numérico o si está en la fase final (Fase 16)
+        if val_dev_guardado > 0 or "ADJUDICACI" in str(avance_p).upper() or "DEVENGADO" in str(avance_p).upper():
+            # Si el cuadro numérico tiene datos, sumamos ese valor real; si no, el asignado
+            v_e_a += val_dev_guardado if val_dev_guardado > 0 else monto_p
             
         if cuat_p == cuat_filtro_texto:
             v_t_c += monto_p
-            if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper(): 
-                v_e_c += monto_p
+            if val_dev_guardado > 0 or "ADJUDICACI" in str(avance_p).upper() or "DEVENGADO" in str(avance_p).upper():
+                v_e_c += val_dev_guardado if val_dev_guardado > 0 else monto_p
 
 for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     depto_p = st.session_state.avances.get(f"nuevo_depto_{i}", np.get('departamento', 'LOGÍSTICA'))
@@ -424,15 +430,19 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
         if u_nom_logueado not in [v_gen, v_seg, v_adm]: 
             continue
             
-    if depto_p == dep_sel and process_esta_activo(i, es_nuevo=True):
+    if depto_p == dep_sel and st.session_state.avances.get(f"nuevo_estado_op_{i}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]:
         v_t_a += monto_p
-        if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper(): 
-            v_e_a += monto_p
+        
+        # Leer el valor real de la casilla de devengado manual
+        val_dev_guardado = float(st.session_state.avances.get(f"nuevo_val_dev_{i}", 0.0))
+        
+        if val_dev_guardado > 0 or "FINALIZADO" in str(avance_p).upper() or "DEVENGADO" in str(avance_p).upper():
+            v_e_a += val_dev_guardado if val_dev_guardado > 0 else monto_p
             
         if cuat_p == cuat_filtro_texto:
             v_t_c += monto_p
-            if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper(): 
-                v_e_c += monto_p
+            if val_dev_guardado > 0 or "FINALIZADO" in str(avance_p).upper() or "DEVENGADO" in str(avance_p).upper():
+                v_e_c += val_dev_guardado if val_dev_guardado > 0 else monto_p
 
 # ==============================================================================
 # --- 6. PANEL CENTRAL GRÁFICO ---
