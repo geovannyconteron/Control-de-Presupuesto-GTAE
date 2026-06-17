@@ -582,11 +582,11 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     titulo = f"🔸 [MANUAL] {st.session_state.avances['procesos_nuevos'][i].get('objeto', np['objeto'])} - ${monto_t:,.2f} ({cuat_p})" if es_activo else f"❌ [ANULADO] {np['objeto']}"
     with st.expander(titulo):
         if st.session_state.user['rol'] in ['admin', 'supervisor']:
-        if st.button("🗑️ BORRAR PROCESO MANUAL", key=f"btn_del_man_{i}"):
-            st.session_state.avances["procesos_nuevos"].pop(i)
-            guardar_base_datos(st.session_state.avances)
-            st.success("Proceso eliminado correctamente de la planificación.")
-            st.rerun()
+            if st.button("🗑️ BORRAR PROCESO MANUAL", key=f"btn_del_man_{i}"):
+                st.session_state.avances["procesos_nuevos"].pop(i)
+                guardar_base_datos(st.session_state.avances)
+                st.success("Proceso eliminado correctamente de la planificación.")
+                st.rerun()
             
         if st.session_state.user['rol'] in ['admin', 'supervisor']:
             st.radio("Estado Disponibilidad:", ["ACTIVO", "CANCELADO"], index=0 if es_activo else 1, key=f"nuevo_estado_op_{i}", on_change=sync_estado, args=(f"nuevo_estado_op_{i}",), horizontal=True)
