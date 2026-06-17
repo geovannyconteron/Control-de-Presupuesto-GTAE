@@ -568,8 +568,9 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
         if es_activo:
             t1, t2, t3 = st.tabs(["📋 Detalles y Equipo", "📍 Avance", "📂 Expediente"])
             with t1:
-                st.text_input("Objeto:", value=st.session_state.avances.get(f"nuevo_name_{i}", np['objeto']), key=f"nuevo_name_{i}", on_change=sync_estado, args=(f"nuevo_name_{i}",))
-                
+                nombre_actual_manual = st.session_state.avances.get(f"nuevo_name_{i}", np['objeto'])
+                st.text_input("Objeto:", value=nombre_actual_manual, key=f"nuevo_name_{i}", on_change=sync_estado, args=(f"nuevo_name_{i}",))
+                                
                 st.markdown("##### 💵 Control y Ejecución Financiera")
                 c_asig, c_cert, c_comp, c_dev = st.columns(4)
                 with c_asig:
