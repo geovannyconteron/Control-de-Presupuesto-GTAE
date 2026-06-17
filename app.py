@@ -54,18 +54,20 @@ def empujar_cambios_a_github():
         
     requests.put(url, headers=headers, json=payload)
 
-# Inicializar o cargar la base de datos
+# Inicializar o cargar la base de datos sin alterar lo existente
 if os.path.exists(DB_FILE):
     with open(DB_FILE, "r", encoding="utf-8") as f:
-        try: st.session_state.avances = json.load(f)
-        except: st.session_state.avances = {}
+        try:
+            st.session_state.avances = json.load(f)
+        except:
+            st.session_state.avances = {}
 else:
     st.session_state.avances = {}
 
 if "procesos_nuevos" not in st.session_state.avances:
     st.session_state.avances["procesos_nuevos"] = []
 
-def proceso_esta_activo(idx, es_nuevo=False):
+def process_esta_activo(idx, es_nuevo=False):
     clave = f"nuevo_estado_op_{idx}" if es_nuevo else f"estado_op_{idx}"
     return st.session_state.avances.get(clave, "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
 
@@ -278,7 +280,7 @@ cuat_mapeo = {"C1": "1er Cuatrimestre", "C2": "2do Cuatrimestre", "C3": "3er Cua
 cuat_filtro_texto = cuat_mapeo[cuat_sel]
 
 # ==============================================================================
-# --- 4. ENGINE DE GENERACIÓN DE REPORTE PDF LIBERADO ---
+# --- 4. ENGINE DE GENERACIÓN DE REPORTE PDF ---
 # ==============================================================================
 def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto):
     pdf = FPDF(orientation='L', unit='mm', format='A4') 
@@ -371,7 +373,7 @@ def generar_pdf_oficial(inspector, df_items, cuat, avances, v_e_a, v_t_a, depto)
     return pdf.output(dest='S').encode('latin1', errors='ignore')
 
 # ==============================================================================
-# --- 5. MOTOR MATEMÁTICO UNIVERSAL FAE (DESGLOSE FINANCIERO ADAPTATIVO) ---
+# --- 5. MOTOR MATEMÁTICO UNIVERSAL FAE ---
 # ==============================================================================
 df_visualizacion = df_pac.copy()
 
@@ -384,6 +386,8 @@ u_rol_logueado = st.session_state.user['rol'].lower().strip()
 for idx, row in df_visualizacion.iterrows():
     depto_p = st.session_state.avances.get(f"depto_{row.name}", "LOGÍSTICA")
     cuat_p = st.session_state.avances.get(f"cuat_{row.name}", "1er Cuatrimestre")
+    
+    # Prioridad matemática: Leer montos guardados del PAC o heredar costo del Excel
     monto_p = float(st.session_state.avances.get(f"monto_{row.name}", float(row['COSTO TOTAL'])))
     avance_p = st.session_state.avances.get(f"s_{row.name}", "Pendiente")
     
@@ -391,18 +395,19 @@ for idx, row in df_visualizacion.iterrows():
     v_seg = st.session_state.avances.get(f"eq_seg_{row.name}", "SIN ASIGNAR").upper().strip()
     v_adm = st.session_state.avances.get(f"eq_adm_{row.name}", "SIN ASIGNAR").upper().strip()
     
+    # Filtrar montos de métricas según pertenencia para operadores estándar
     if u_rol_logueado not in ['admin', 'supervisor']:
-        if u_nom_logueado not in [v_gen, v_seg, v_adm]:
+        if u_nom_logueado not in [v_gen, v_seg, v_adm]: 
             continue
             
-    if depto_p == dep_sel and proceso_esta_activo(row.name, es_nuevo=False):
+    if depto_p == dep_sel and process_esta_activo(row.name, es_nuevo=False):
         v_t_a += monto_p
-        if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
+        if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper(): 
             v_e_a += monto_p
             
         if cuat_p == cuat_filtro_texto:
             v_t_c += monto_p
-            if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
+            if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper(): 
                 v_e_c += monto_p
 
 for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
@@ -416,17 +421,17 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     v_adm = st.session_state.avances.get(f"nuevo_eq_adm_{i}", "SIN ASIGNAR").upper().strip()
     
     if u_rol_logueado not in ['admin', 'supervisor']:
-        if u_nom_logueado not in [v_gen, v_seg, v_adm]:
+        if u_nom_logueado not in [v_gen, v_seg, v_adm]: 
             continue
             
-    if depto_p == dep_sel and proceso_esta_activo(i, es_nuevo=True):
+    if depto_p == dep_sel and process_esta_activo(i, es_nuevo=True):
         v_t_a += monto_p
-        if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
+        if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper(): 
             v_e_a += monto_p
             
         if cuat_p == cuat_filtro_texto:
             v_t_c += monto_p
-            if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper():
+            if "DEVENGADO" in str(avance_p).upper() or "FINALIZADO" in str(avance_p).upper(): 
                 v_e_c += monto_p
 
 # ==============================================================================
@@ -487,6 +492,14 @@ if st.session_state.user['rol'] in ['admin', 'supervisor']:
             with col_lista:
                 st.markdown("### 📋 Personal registrado")
                 st.dataframe({"Grado y Nombre Completo": lista_admins_reales}, use_container_width=True, hide_index=True)
+                t.markdown("##### 🗑️ Dar de Baja Operador")
+                user_a_borrar = st.selectbox("Seleccione operador para eliminar:", [u for u in lista_admins_reales if u != "SIN ASIGNAR"])
+                if st.button("❌ ELIMINAR OPERADOR COMPLETAMENTE"):
+                    if user_a_borrar in st.session_state.avances["lista_usuarios_gtae"]:
+                        st.session_state.avances["lista_usuarios_gtae"].remove(user_a_borrar)
+                        guardar_base_datos(st.session_state.avances)
+                        st.success(f"Operador {user_a_borrar} purgado correctamente.")
+                        st.rerun()
             with col_ingreso:
                 st.markdown("### ➕ Registrar Operador")
                 with st.form("form_nuevo_usuario", clear_on_submit=True):
@@ -546,7 +559,7 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     v_seg = st.session_state.avances.get(f'nuevo_eq_seg_{i}', "SIN ASIGNAR").upper().strip()
     v_adm = st.session_state.avances.get(f'nuevo_eq_adm_{i}', "SIN ASIGNAR").upper().strip()
     
-    # 🔐 FILTRO DE PRIVACIDAD CRÍTICO: Si es un usuario operador estándar, aislar visualmente
+    # 🔐 FILTRO DE PRIVACIDAD MILITAR: Si es operador estándar, aislar visualmente
     if u_rol_logueado not in ['admin', 'supervisor']:
         if u_nom_logueado not in [v_gen, v_seg, v_adm]:
             continue
@@ -561,16 +574,33 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
     monto_t = float(st.session_state.avances.get(f"nuevo_monto_{i}", float(np['monto'])))
     puntos_fases = inf_s if "INFIMA" in np['tipo'] else (ext_s if "EXTRANJERO" in np['tipo'] else px_s)
     
-    titulo = f"🔸 [MANUAL] {np['objeto']} - ${monto_t:,.2f} ({cuat_p})" if es_activo else f"❌ [ANULADO] {np['objeto']}"
+    # LÓGICA DE CONTROL ESTABLE PARA NOMBRES MANUALES
+    key_manual = f"nuevo_name_{i}"
+    if key_manual not in st.session_state:
+        st.session_state[key_manual] = st.session_state.avances.get(key_manual, np['objeto'])
+    
+    titulo = f"🔸 [MANUAL] {st.session_state.avances['procesos_nuevos'][i].get('objeto', np['objeto'])} - ${monto_t:,.2f} ({cuat_p})" if es_activo else f"❌ [ANULADO] {np['objeto']}"
     with st.expander(titulo):
+        if st.session_state.user['rol'] in ['admin', 'supervisor']:
+            if st.button("🗑️ BORRAR PROCESO MANUAL", key=f"btn_del_man_{i}"):
+                st.session_state.avances["procesos_nuevos"].pop(i)
+                guardar_base_datos(st.session_state.avances)
+                st.rerun()
         if st.session_state.user['rol'] in ['admin', 'supervisor']:
             st.radio("Estado Disponibilidad:", ["ACTIVO", "CANCELADO"], index=0 if es_activo else 1, key=f"nuevo_estado_op_{i}", on_change=sync_estado, args=(f"nuevo_estado_op_{i}",), horizontal=True)
         if es_activo:
             t1, t2, t3 = st.tabs(["📋 Detalles y Equipo", "📍 Avance", "📂 Expediente"])
             with t1:
-                nombre_actual_manual = st.session_state.avances.get(f"nuevo_name_{i}", np['objeto'])
-                st.text_input("Objeto:", value=nombre_actual_manual, key=f"nuevo_name_{i}", on_change=sync_estado, args=(f"nuevo_name_{i}",))
-                                
+                # Entrada de texto nativa para el nombre manual
+                obj_manual_texto = st.text_input("Objeto:", key=key_manual)
+                if obj_manual_texto != st.session_state.avances.get(key_manual):
+                    st.session_state.avances[key_manual] = obj_manual_texto
+                    np['objeto'] = obj_manual_texto
+                    if "procesos_nuevos" in st.session_state.avances:
+                        st.session_state.avances["procesos_nuevos"][i]['objeto'] = obj_manual_texto
+                    guardar_base_datos(st.session_state.avances)
+                    st.rerun()
+                
                 st.markdown("##### 💵 Control y Ejecución Financiera")
                 c_asig, c_cert, c_comp, c_dev = st.columns(4)
                 with c_asig:
@@ -629,7 +659,7 @@ if col_desc:
         v_seg = st.session_state.avances.get(f"eq_seg_{r.name}", "SIN ASIGNAR").upper().strip()
         v_adm = st.session_state.avances.get(f"eq_adm_{r.name}", "SIN ASIGNAR").upper().strip()
         
-        # 🔐 FILTRO DE PRIVACIDAD CRÍTICO: Si es un usuario operador estándar, aislar visualmente
+        # 🔐 FILTRO DE PRIVACIDAD MILITAR: Si es operador estándar, aislar visualmente
         if u_rol_logueado not in ['admin', 'supervisor']:
             if u_nom_logueado not in [v_gen, v_seg, v_adm]:
                 continue
@@ -645,14 +675,24 @@ if col_desc:
         es_activo = st.session_state.avances.get(f"estado_op_{r.name}", "ACTIVO") in ["ACTIVO", "🟢 ACTIVO"]
         monto_tarjeta = float(st.session_state.avances.get(f"monto_{r.name}", float(r['COSTO TOTAL'])))
         
-        titulo_tarjeta = f"🔹 {r[col_desc]} - ${monto_tarjeta:,.2f} ({cuat_p})" if es_activo else f"❌ [ANULADO] {r[col_desc]}"
+        # LÓGICA DE CONTROL BLINDADO PARA NOMBRES PAC (JSON PRIMERO, EXCEL DESPUÉS)
+        key_pac = f"name_{r.name}"
+        if key_pac not in st.session_state:
+            st.session_state[key_pac] = st.session_state.avances.get(key_pac, str(r.get(col_desc, 'S/N')))
+        
+        titulo_tarjeta = f"🔹 {st.session_state.avances.get(key_pac, str(r.get(col_desc, 'S/N')))} - ${monto_tarjeta:,.2f} ({cuat_p})" if es_activo else f"❌ [ANULADO] {r[col_desc]}"
         with st.expander(titulo_tarjeta):
             if st.session_state.user['rol'] in ['admin', 'supervisor']:
                 st.radio("Planificación PAC:", ["ACTIVO", "CANCELADO / NO SE DA"], index=0 if es_activo else 1, key=f"estado_op_{r.name}", on_change=sync_estado, args=(f"estado_op_{r.name}",), horizontal=True)
             if es_activo:
                 t1, t2, t3 = st.tabs(["📋 Detalles y Equipo", "📍 Avance", "📂 Expediente"])
                 with t1:
-                    st.text_input("Objeto de Contratación:", value=st.session_state.avances.get(f"name_{r.name}", str(r.get(col_desc, 'S/N'))), key=f"name_{r.name}", on_change=sync_estado, args=(f"name_{r.name}",))
+                    # Entrada de texto nativa vinculada a memoria de sesión para el PAC
+                    obj_pac_texto = st.text_input("Objeto de Contratación:", key=key_pac)
+                    if obj_pac_texto != st.session_state.avances.get(key_pac):
+                        st.session_state.avances[key_pac] = obj_pac_texto
+                        guardar_base_datos(st.session_state.avances)
+                        st.rerun()
                     
                     st.markdown("##### 💵 Control y Ejecución Financiera")
                     c_asig, c_cert, c_comp, c_dev = st.columns(4)
