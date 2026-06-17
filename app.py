@@ -590,8 +590,9 @@ for i, np in enumerate(st.session_state.avances["procesos_nuevos"]):
 
             if st.session_state.user['rol'] in ['admin', 'supervisor']:
                 st.radio("Estado Disponibilidad:", ["ACTIVO", "CANCELADO"], index=0 if es_activo else 1, key=f"nuevo_estado_op_{i}", on_change=sync_estado, args=(f"nuevo_estado_op_{i}",), horizontal=True)
-        if es_activo:
-            t1, t2, t3 = st.tabs(["📋 Detalles y Equipo", "📍 Avance", "📂 Expediente"])
+
+            if es_activo:
+                t1, t2, t3 = st.tabs(["📋 Detalles y Equipo", "📍 Avance", "📂 Expediente"])
             with t1:
                 # Entrada de texto nativa para el nombre manual
                 obj_manual_texto = st.text_input("Objeto:", key=key_manual)
