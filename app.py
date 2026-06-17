@@ -492,7 +492,7 @@ if st.session_state.user['rol'] in ['admin', 'supervisor']:
             with col_lista:
                 st.markdown("### 📋 Personal registrado")
                 st.dataframe({"Grado y Nombre Completo": lista_admins_reales}, use_container_width=True, hide_index=True)
-                t.markdown("##### 🗑️ Dar de Baja Operador")
+                st.markdown("##### 🗑️ Dar de Baja Operador")
                 user_a_borrar = st.selectbox("Seleccione operador para eliminar:", [u for u in lista_admins_reales if u != "SIN ASIGNAR"])
                 if st.button("❌ ELIMINAR OPERADOR COMPLETAMENTE"):
                     if user_a_borrar in st.session_state.avances["lista_usuarios_gtae"]:
