@@ -1,5 +1,14 @@
 {
-    "procesos_nuevos": [],
+    "procesos_nuevos": [
+        {
+            "objeto": "SERVICIO DE SOPORTE DE PIEZAS POR HORA DE VUELO PARA EL MANTENIMIENTO PREVENTIVO Y CORRECTIVO DE LA AERONAVE FALCON 7X FAE 052 (2025-2029)",
+            "partida": "530405",
+            "monto": 250539.44,
+            "tipo": "EXTRANJERO / EXCLUSIVIDAD",
+            "departamento": "LOGÍSTICA",
+            "cuatrimestre": "2do Cuatrimestre"
+        }
+    ],
     "lista_usuarios_gtae": [
         "ALBUJA L.",
         "BENAVIDES H.",
