@@ -1,14 +1,5 @@
 {
-    "procesos_nuevos": [
-        {
-            "objeto": "SERVICIO DE SOPORTE DE PIEZAS POR HORA DE VUELO PARA EL MANTENIMIENTO PREVENTIVO Y CORRECTIVO DE LA AERONAVE FALCON 7X FAE 052",
-            "partida": "530405",
-            "monto": 504523.0,
-            "tipo": "EXTRANJERO / EXCLUSIVIDAD",
-            "departamento": "LOGÍSTICA",
-            "cuatrimestre": "2do Cuatrimestre"
-        }
-    ],
+    "procesos_nuevos": [],
     "lista_usuarios_gtae": [
         "ALBUJA L.",
         "BENAVIDES H.",
@@ -211,7 +202,7 @@
     "eq_seg_40": "CPAREDES H.",
     "eq_adm_40": "CANDO R.",
     "s_40": "8. Autorización de Invitación por Jefe CMP",
-    "nota_40": "EN FASE DE SOLICITUD D PROVEEDORES",
+    "nota_40": "FASE DE SOLICITUD DE PROVEEDORES",
     "part_39": "530702",
     "eq_seg_39": "REMACHE L.",
     "eq_adm_39": "NIQUINGA I.",
@@ -271,15 +262,7 @@
     "s_31": "3. Subsanación de observaciones",
     "nota_31": "FASE DE CORRECCIÓN DE OBSERVACIONES",
     "estado_op_37": "CANCELADO / NO SE DA",
-    "nota_35": "Sin novedad",
-    "nota_36": "Sin novedad",
-    "nota_38": "Sin novedad",
-    "nuevo_name_0": "SERVICIO DE SOPORTE DE PIEZAS POR HORA DE VUELO PARA EL MANTENIMIENTO PREVENTIVO Y CORRECTIVO DE LA AERONAVE FALCON 7X FAE 052",
-    "nuevo_monto_0": 250539.44,
-    "nuevo_val_cert_0": 250539.44,
-    "nuevo_val_comp_0": 250539.44,
-    "nuevo_val_dev_0": 62634.86,
-    "nuevo_eq_gen_0": "BENAVIDES H.",
-    "nuevo_eq_seg_0": "TOAPANTA G.",
-    "nuevo_eq_adm_0": "TOAPANTA G."
+    "nota_35": "ENVIO DE OFICIO DE SOLICITUD DE CERTIFICACIÓN PRESUPUESTARIA CMP ",
+    "nota_36": "ENVIO DE OFICIO DE SOLICITUD DE CERTIFICACIÓN PRESUPUESTARIA CMP ",
+    "nota_38": "ENVIO DE OFICIO DE SOLICITUD DE CERTIFICACIÓN PRESUPUESTARIA CMP "
 }
