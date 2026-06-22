@@ -7,6 +7,14 @@
             "tipo": "EXTRANJERO / EXCLUSIVIDAD",
             "departamento": "LOGÍSTICA",
             "cuatrimestre": "2do Cuatrimestre"
+        },
+        {
+            "objeto": "BORRADOR 2",
+            "partida": "12345",
+            "monto": 0.0012345,
+            "tipo": "ÍNFIMA CUANTÍA",
+            "departamento": "LOGÍSTICA",
+            "cuatrimestre": "2do Cuatrimestre"
         }
     ],
     "lista_usuarios_gtae": [
