@@ -9,14 +9,6 @@
             "cuatrimestre": "2do Cuatrimestre"
         },
         {
-            "objeto": "BORRADOR 2",
-            "partida": "12345",
-            "monto": 0.0012345,
-            "tipo": "ÍNFIMA CUANTÍA",
-            "departamento": "LOGÍSTICA",
-            "cuatrimestre": "2do Cuatrimestre"
-        },
-        {
             "objeto": "BORRADOR 3",
             "partida": "1234566",
             "monto": 123456.0,
