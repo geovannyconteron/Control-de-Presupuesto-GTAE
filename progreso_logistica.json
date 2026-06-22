@@ -15,6 +15,14 @@
             "tipo": "ÍNFIMA CUANTÍA",
             "departamento": "LOGÍSTICA",
             "cuatrimestre": "2do Cuatrimestre"
+        },
+        {
+            "objeto": "BORRADOR 3",
+            "partida": "1234566",
+            "monto": 123456.0,
+            "tipo": "ÍNFIMA CUANTÍA",
+            "departamento": "OPERACIONES",
+            "cuatrimestre": "1er Cuatrimestre"
         }
     ],
     "lista_usuarios_gtae": [
