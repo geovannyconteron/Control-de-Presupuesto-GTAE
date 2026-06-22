@@ -1,14 +1,6 @@
 {
     "procesos_nuevos": [
         {
-            "objeto": "BORRADOR 1",
-            "partida": "111111",
-            "monto": 12345.0,
-            "tipo": "EXTRANJERO / EXCLUSIVIDAD",
-            "departamento": "LOGÍSTICA",
-            "cuatrimestre": "2do Cuatrimestre"
-        },
-        {
             "objeto": "BORRADOR 3",
             "partida": "1234566",
             "monto": 123456.0,
