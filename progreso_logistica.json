@@ -1,5 +1,14 @@
 {
-    "procesos_nuevos": [],
+    "procesos_nuevos": [
+        {
+            "objeto": "BORRADOR 1",
+            "partida": "111111",
+            "monto": 12345.0,
+            "tipo": "EXTRANJERO / EXCLUSIVIDAD",
+            "departamento": "LOGÍSTICA",
+            "cuatrimestre": "2do Cuatrimestre"
+        }
+    ],
     "lista_usuarios_gtae": [
         "ALBUJA L.",
         "BENAVIDES H.",
