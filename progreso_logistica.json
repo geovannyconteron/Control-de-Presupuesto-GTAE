@@ -23,6 +23,14 @@
             "tipo": "ÍNFIMA CUANTÍA",
             "departamento": "OPERACIONES",
             "cuatrimestre": "1er Cuatrimestre"
+        },
+        {
+            "objeto": "PRUEBA 2",
+            "partida": "1232143214",
+            "monto": 777777.0,
+            "tipo": "EXTRANJERO / EXCLUSIVIDAD",
+            "departamento": "LOGÍSTICA",
+            "cuatrimestre": "2do Cuatrimestre"
         }
     ],
     "lista_usuarios_gtae": [
