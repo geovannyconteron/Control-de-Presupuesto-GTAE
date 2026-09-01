@@ -329,5 +329,6 @@
     "val_dev_32": 11017.0,
     "val_cert_51": 4729.0,
     "estado_op_6": "CANCELADO / NO SE DA",
-    "estado_op_7": "CANCELADO / NO SE DA"
+    "estado_op_7": "CANCELADO / NO SE DA",
+    "val_cert_12": 10000.0
 }
